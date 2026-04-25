@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Chat Audit Logs – FleetGuard{% endblock %}
+{% block page_title %}Communication Audit Logs{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h6 class="section-title">FR-805: Message Retrieval for Auditing</h6>
+    </div>
+</div>
+
+<div class="card-table">
+    {% if logs %}
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Shipment ID</th>
+                <th>Sender</th>
+                <th>Role</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td class="text-muted small">
+                    {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at is not string else log.created_at }}
+                </td>
+                <td>
+                    <a href="{{ url_for('chat', shipment_id=log.shipment_id) }}" class="fw-bold">
+                        {{ log.shipment_id }}
+                    </a>
+                    <div class="small text-muted">{{ log.item_type }}</div>
+                </td>
+                <td>{{ log.sender_name }}</td>
+                <td>
+                    {% if log.sender_role == 'admin' %}
+                        <span class="badge bg-danger">Admin</span>
+                    {% elif log.sender_role == 'driver' %}
+                        <span class="badge bg-primary">Driver</span>
+                    {% else %}
+                        <span class="badge bg-info">Customer</span>
+                    {% endif %}
+                </td>
+                <td style="max-width: 400px; word-wrap: break-word;">
+                    {{ log.message }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-history"></i>
+        <div>No chat messages found in audit logs.</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

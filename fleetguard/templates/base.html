@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}FleetGuard{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet"/>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <i class="fas fa-shield-halved brand-icon"></i>
+    <div>
+      <div class="brand-name">FleetGuard</div>
+      <div class="brand-sub">Transport Management</div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Main navigation">
+    <div class="nav-section-title">Overview</div>
+    <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">
+      <i class="fas fa-gauge-high"></i> <span>Dashboard</span>
+    </a>
+
+    {% if session.get('role') == 'admin' %}
+    <div class="nav-section-title">Fleet</div>
+    <a href="{{ url_for('trucks') }}" class="{{ 'active' if 'truck' in request.endpoint and 'profit' not in request.endpoint else '' }}">
+      <i class="fas fa-truck"></i> <span>Trucks</span>
+    </a>
+    <a href="{{ url_for('truck_profitability') }}" class="{{ 'active' if 'profit' in request.endpoint else '' }}">
+      <i class="fas fa-chart-line"></i> <span>Truck Profitability</span>
+    </a>
+    <a href="{{ url_for('drivers') }}" class="{{ 'active' if 'driver' in request.endpoint else '' }}">
+      <i class="fas fa-id-card"></i> <span>Drivers</span>
+    </a>
+    <a href="{{ url_for('shipments') }}" class="{{ 'active' if 'shipment' in request.endpoint else '' }}">
+      <i class="fas fa-boxes-stacked"></i> <span>Shipments</span>
+    </a>
+    <a href="{{ url_for('admin_dispatch_settings') }}" class="{{ 'active' if 'dispatch' in request.endpoint and 'audit' not in request.endpoint else '' }}">
+      <i class="fas fa-robot"></i> <span>Dispatch Engine</span>
+    </a>
+    <a href="{{ url_for('admin_dispatch_audit_logs') }}" class="{{ 'active' if 'dispatch' in request.endpoint and 'audit' in request.endpoint else '' }}">
+      <i class="fas fa-clipboard-list"></i> <span>Dispatch Audit</span>
+    </a>
+    <a href="{{ url_for('users') }}" class="{{ 'active' if 'user' in request.endpoint else '' }}">
+      <i class="fas fa-users"></i> <span>Users</span>
+    </a>
+    <a href="{{ url_for('admin_locations') }}" class="{{ 'active' if request.endpoint == 'admin_locations' else '' }}">
+      <i class="fas fa-map-location-dot"></i> <span>Live Locations</span>
+    </a>
+    <div class="nav-section-title">Alerts</div>
+    <a href="{{ url_for('admin_fuel_requests') }}" class="{{ 'active' if request.endpoint == 'admin_fuel_requests' else '' }}">
+      <i class="fas fa-gas-pump"></i> <span>Fuel Requests</span>
+    </a>
+    <a href="{{ url_for('admin_fuel_payment_history') }}" class="{{ 'active' if request.endpoint == 'admin_fuel_payment_history' else '' }}">
+      <i class="fas fa-receipt"></i> <span>Fuel Payments</span>
+    </a>
+    <a href="{{ url_for('admin_accidents') }}" class="{{ 'active' if 'accident' in request.endpoint else '' }}">
+      <i class="fas fa-car-burst"></i> <span>Accidents</span>
+    </a>
+    <a href="{{ url_for('admin_breakdowns') }}" class="{{ 'active' if 'breakdown' in request.endpoint else '' }}">
+      <i class="fas fa-wrench"></i> <span>Breakdowns</span>
+    </a>
+    <a href="{{ url_for('admin_call_requests') }}" class="{{ 'active' if 'call' in request.endpoint else '' }}">
+      <i class="fas fa-phone-volume"></i> <span>Call Requests</span>
+    </a>
+    <a href="{{ url_for('admin_chat_logs') }}" class="{{ 'active' if request.endpoint == 'admin_chat_logs' else '' }}">
+      <i class="fas fa-comments"></i> <span>Communication Audit</span>
+    </a>
+
+    {% elif session.get('role') == 'driver' %}
+    <div class="nav-section-title">My Work</div>
+    <a href="{{ url_for('shipments') }}" class="{{ 'active' if request.endpoint == 'shipments' else '' }}">
+      <i class="fas fa-boxes-stacked"></i> <span>My Shipments</span>
+    </a>
+    <a href="{{ url_for('location_update') }}" class="{{ 'active' if request.endpoint == 'location_update' else '' }}">
+      <i class="fas fa-location-dot"></i> <span>Update Location</span>
+    </a>
+    <div class="nav-section-title">Emergency</div>
+    <a href="{{ url_for('fuel_request') }}" class="{{ 'active' if request.endpoint == 'fuel_request' else '' }}">
+      <i class="fas fa-gas-pump"></i> <span>Fuel Request</span>
+    </a>
+    <a href="{{ url_for('accident_report') }}" class="{{ 'active' if request.endpoint == 'accident_report' else '' }}">
+      <i class="fas fa-car-burst"></i> <span>Accident Report</span>
+    </a>
+    <a href="{{ url_for('breakdown_report') }}" class="{{ 'active' if request.endpoint == 'breakdown_report' else '' }}">
+      <i class="fas fa-wrench"></i> <span>Breakdown Report</span>
+    </a>
+    <a href="{{ url_for('call_request') }}" class="{{ 'active' if request.endpoint == 'call_request' else '' }}">
+      <i class="fas fa-phone-volume"></i> <span>Call Admin</span>
+    </a>
+
+    {% else %}
+    <div class="nav-section-title">Customer</div>
+    <a href="{{ url_for('customer_create_shipment') }}" class="{{ 'active' if request.endpoint == 'customer_create_shipment' else '' }}">
+      <i class="fas fa-plus"></i> <span>Create Shipment</span>
+    </a>
+    <a href="{{ url_for('shipments') }}" class="{{ 'active' if request.endpoint == 'shipments' else '' }}">
+      <i class="fas fa-boxes-stacked"></i> <span>Track Shipments</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="{{ url_for('profile') }}" class="user-info">
+      <div class="avatar">{{ session.get('name','U')[0].upper() }}</div>
+      <div>
+        <div class="uname">{{ session.get('name','') }}</div>
+        <div class="urole">{{ session.get('role','') }}</div>
+      </div>
+    </a>
+    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light w-100 mt-1">
+      <i class="fas fa-right-from-bracket me-1"></i> Logout
+    </a>
+  </div>
+</div>
+
+<!-- Mobile overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- Main content -->
+<div class="main-content">
+  <div class="topbar">
+    <div class="d-flex align-items-center">
+      <button id="sidebar-toggle" aria-label="Toggle navigation">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="topbar-title">
+        <i class="fas fa-shield-halved title-icon"></i>
+        {% block page_title %}Dashboard{% endblock %}
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-bell"></i>
+          {% if header_notification_unread > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ header_notification_unread }}
+            </span>
+          {% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-end p-0" style="width: 360px; max-height: 420px; overflow:auto;">
+          <div class="px-3 py-2 border-bottom small fw-bold">Notifications</div>
+          {% if header_notifications %}
+            {% for n in header_notifications %}
+              <div class="px-3 py-2 border-bottom">
+                <div class="small">{{ n.message }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                  <small class="text-muted">{{ n.created_at.strftime('%d %b, %I:%M %p') if n.created_at else '' }}</small>
+                  {% if not n.read_at %}
+                    <form method="POST" action="{{ url_for('mark_header_notification_read', nid=n._id) }}">
+                      <button type="submit" class="btn btn-link btn-sm text-decoration-none p-0">Mark read</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="px-3 py-3 small text-muted">No notifications yet.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if session.get('role') == 'admin' %}
+        <span class="badge-status bs-role-admin">Admin</span>
+      {% elif session.get('role') == 'driver' %}
+        <span class="badge-status bs-role-driver">Driver</span>
+      {% else %}
+        <span class="badge-status bs-role-customer">Customer</span>
+      {% endif %}
+      <a href="{{ url_for('profile') }}" class="text-muted small text-decoration-none">
+        {{ session.get('name','') }}
+      </a>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- Flash data for toast renderer -->
+    <div id="flash-data" data-messages="{{ get_flashed_messages(with_categories=true)|tojson|e }}" style="display:none;"></div>
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+
+<script>
+(function() {
+  /* ── Sidebar toggle ── */
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const toggle   = document.getElementById('sidebar-toggle');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (toggle) toggle.addEventListener('click', function() {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+  });
+  if (overlay) overlay.addEventListener('click', closeSidebar);
+
+  /* ── Button ripple effect ── */
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.btn-primary, .btn-accent, .btn-auth-submit, .btn-submit-warning, .btn-submit-danger, .btn-submit-purple');
+    if (!btn) return;
+    const rect   = btn.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size   = Math.max(rect.width, rect.height) * 2;
+    ripple.style.cssText = [
+      'position:absolute',
+      'border-radius:50%',
+      'background:rgba(255,255,255,0.35)',
+      'pointer-events:none',
+      'transform:translate(-50%,-50%) scale(0)',
+      'animation:ripple 0.55s ease forwards',
+      'width:' + size + 'px',
+      'height:' + size + 'px',
+      'left:' + (e.clientX - rect.left) + 'px',
+      'top:' + (e.clientY - rect.top) + 'px'
+    ].join(';');
+    if (getComputedStyle(btn).position === 'static') btn.style.position = 'relative';
+    btn.style.overflow = 'hidden';
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', function() { ripple.remove(); });
+  });
+
+  /* ── Toast notifications ── */
+  const flashEl = document.getElementById('flash-data');
+  const toastContainer = document.getElementById('toast-container');
+  const iconMap = {
+    success: 'fa-circle-check',
+    danger:  'fa-circle-xmark',
+    warning: 'fa-triangle-exclamation',
+    info:    'fa-circle-info',
+    error:   'fa-circle-xmark'
+  };
+
+  function createToast(category, message) {
+    const cat  = category === 'error' ? 'danger' : category;
+    const item = document.createElement('div');
+    item.className = 'toast-item toast-' + cat;
+    item.innerHTML =
+      '<i class="fas ' + (iconMap[cat] || iconMap.info) + ' toast-icon"></i>' +
+      '<span class="toast-msg">' + message + '</span>' +
+      '<button class="toast-close" aria-label="Close">&times;</button>';
+
+    item.querySelector('.toast-close').addEventListener('click', function() { dismissToast(item); });
+    toastContainer.appendChild(item);
+    setTimeout(function() { dismissToast(item); }, 4500);
+  }
+
+  function dismissToast(item) {
+    item.classList.add('toast-hiding');
+    item.addEventListener('animationend', function() { item.remove(); }, { once: true });
+  }
+
+  if (flashEl && toastContainer) {
+    try {
+      const messages = JSON.parse(flashEl.dataset.messages || '[]');
+      messages.forEach(function(pair) { createToast(pair[0], pair[1]); });
+    } catch(e) {}
+  }
+})();
+
+// FR-501: Automated location push every 30 mins for drivers
+{% if session.get('role') == 'driver' %}
+function pushLocation() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const formData = new FormData();
+      formData.append('latitude', pos.coords.latitude);
+      formData.append('longitude', pos.coords.longitude);
+      formData.append('location_text', 'Automatic GPS Push');
+      fetch('/driver/update-location', { method: 'POST', body: formData });
+    });
+  }
+}
+pushLocation();
+setInterval(pushLocation, 30 * 60 * 1000); 
+{% endif %}
+</script>
+</body>
+</html>

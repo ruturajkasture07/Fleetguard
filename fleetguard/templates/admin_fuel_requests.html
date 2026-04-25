@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Fuel Requests – FleetGuard{% endblock %}
+{% block page_title %}Fuel Request Management{% endblock %}
+{% block content %}
+{% if razorpay_ready %}
+<div class="alert alert-info py-2 small mb-3">
+  <i class="fas fa-shield-halved me-1"></i>
+  Razorpay is configured: <strong>Pay</strong> opens checkout. Successful payments are verified (signature + order match) before marking Paid; drivers are notified automatically.
+</div>
+{% else %}
+<div class="alert alert-warning py-2 small mb-3">
+  <i class="fas fa-flask me-1"></i>
+  Demo / offline mode: <strong>Pay</strong> marks the request paid immediately (no checkout). Add <code>RAZORPAY_KEY_ID</code> and <code>RAZORPAY_KEY_SECRET</code> to <code>.env</code> for live test keys.
+</div>
+{% endif %}
+<h6 class="section-title mb-3">All Fuel Requests</h6>
+<div class="card-table">
+  {% if requests %}
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Driver</th>
+        <th>Truck</th>
+        <th>Location</th>
+        <th>Litres</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Payment</th>
+        <th>Txn / Paid</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr>
+        <td class="text-muted small">{{ loop.index }}</td>
+        <td><strong>{{ r.driver_name }}</strong></td>
+        <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+        <td><small>{{ r.current_location }}</small></td>
+        <td>{{ r.fuel_required }}L</td>
+        <td><strong>₹{{ r.amount }}</strong></td>
+        <td>
+          {% if r.status == 'Approved' %}<span class="badge-status bs-approved">{{ r.status }}</span>
+          {% elif r.status == 'Rejected' %}<span class="badge-status bs-rejected">{{ r.status }}</span>
+          {% else %}<span class="badge-status bs-pending">{{ r.status }}</span>{% endif %}
+        </td>
+        <td>
+          {% if r.payment_status == 'Paid' %}
+            <span class="badge-status bs-paid">Paid</span>
+          {% else %}
+            <span class="badge-status bs-unpaid">Unpaid</span>
+          {% endif %}
+          {% if r.payment_failure_reason %}
+            <div class="text-danger small mt-1" title="{{ r.payment_failure_reason }}">Last error: {{ r.payment_failure_reason[:80] }}{% if r.payment_failure_reason|length > 80 %}…{% endif %}</div>
+          {% endif %}
+        </td>
+        <td class="small text-muted">
+          {% if r.payment_status == 'Paid' %}
+            <div class="text-break"><code>{{ r.payment_id or '—' }}</code></div>
+            <div>{{ r.paid_at.strftime('%d %b %Y %H:%M') if r.paid_at else (r.paid_at or '') }}</div>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if r.status == 'Pending' %}
+          <form method="POST" action="{{ url_for('fuel_request_action', req_id=r._id) }}" class="d-inline">
+            <input type="hidden" name="action" value="Approved"/>
+            <button type="submit" class="btn-action btn-action--success me-1">Approve</button>
+          </form>
+          <form method="POST" action="{{ url_for('fuel_request_action', req_id=r._id) }}" class="d-inline">
+            <input type="hidden" name="action" value="Rejected"/>
+            <button type="submit" class="btn-action btn-action--danger">Reject</button>
+          </form>
+          {% elif r.status == 'Approved' and r.payment_status != 'Paid' %}
+          <button type="button" class="btn btn-sm btn-accent pay-btn"
+            data-req-id="{{ r._id }}"
+            data-amount="{{ r.amount }}"
+            data-driver="{{ r.driver_name }}">
+            <i class="fas fa-credit-card me-1"></i>Pay ₹{{ r.amount }}
+          </button>
+          {% else %}
+          <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-gas-pump"></i>
+    <div>No fuel requests yet.</div>
+  </div>
+  {% endif %}
+</div>
+
+<form id="paymentSuccessForm" method="POST" action="{{ url_for('payment_success') }}" style="display:none;">
+  <input type="hidden" name="req_id" id="payReqId"/>
+  <input type="hidden" name="payment_id" id="payPaymentId"/>
+  <input type="hidden" name="razorpay_order_id" id="payOrderId"/>
+  <input type="hidden" name="razorpay_signature" id="paySignature"/>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.querySelectorAll('.pay-btn').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const reqId = this.dataset.reqId;
+    const amount = this.dataset.amount;
+    const driver = this.dataset.driver;
+
+    const res = await fetch('/admin/fuel-requests/pay/' + reqId, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    });
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      alert('Could not read server response.');
+      return;
+    }
+
+    if (data.error) {
+      alert('Payment error: ' + data.error);
+      return;
+    }
+    if (data.success && data.mode === 'offline') {
+      alert('Payment marked as Paid (offline/demo mode). Driver notified.');
+      window.location.reload();
+      return;
+    }
+
+    const options = {
+      key: data.key,
+      amount: data.amount,
+      currency: 'INR',
+      name: 'FleetGuard',
+      description: 'Fuel payment for ' + driver,
+      order_id: data.order_id,
+      handler: function(response) {
+        document.getElementById('payReqId').value = reqId;
+        document.getElementById('payPaymentId').value = response.razorpay_payment_id;
+        document.getElementById('payOrderId').value = response.razorpay_order_id;
+        document.getElementById('paySignature').value = response.razorpay_signature;
+        document.getElementById('paymentSuccessForm').submit();
+      },
+      prefill: { name: driver },
+      theme: { color: '#0a2342' },
+      modal: {
+        ondismiss: function() {
+          /* user closed checkout without paying — no server round-trip required */
+        }
+      }
+    };
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function(response) {
+      fetch('/admin/fuel-requests/payment-failed', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          req_id: reqId,
+          error: (response && response.error) ? response.error : response
+        })
+      }).finally(function() {
+        const msg = (response && response.error && response.error.description)
+          ? response.error.description
+          : 'Payment failed.';
+        alert(msg);
+        window.location.reload();
+      });
+    });
+    rzp.open();
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}New Shipment – FleetGuard{% endblock %}
+{% block page_title %}Create Shipment{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="form-card">
+      <h5><i class="fas fa-boxes-stacked me-2"></i>New Shipment</h5>
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Item Type *</label>
+            <select name="item_type" class="form-select" required>
+              <option value="">Select Item Type</option>
+              {% for it in ['Car Parts','Electronics','Furniture','Textiles','Chemicals','Food & Beverages','Construction Material','Machinery','Pharmaceuticals','General Goods'] %}
+              <option>{{ it }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Weight (kg) *</label>
+            <input type="number" name="weight" class="form-control" placeholder="e.g. 5000" required min="1"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Pickup Location *</label>
+            <input type="text" name="pickup_location" class="form-control" placeholder="City / Address" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Delivery Location *</label>
+            <input type="text" name="delivery_location" class="form-control" placeholder="City / Address" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dimensions (Optional)</label>
+            <input type="text" name="dimensions" class="form-control" placeholder="e.g. 2x2x3 m"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assign Truck *</label>
+            <select name="assigned_truck" class="form-select" required>
+              <option value="">-- Select Truck --</option>
+              {% for t in trucks %}
+              <option value="{{ t.truck_number }}">{{ t.truck_number }} – {{ t.truck_type }} ({{ t.status }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assign Driver *</label>
+            <select name="driver_id" class="form-select" required>
+              <option value="">-- Select Driver --</option>
+              {% for d in drivers %}
+              <option value="{{ d._id }}">{{ d.driver_name }} ({{ d.assigned_truck or 'Unassigned' }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Customer (for portal tracking) *</label>
+            <select name="customer_id" class="form-select" required>
+              <option value="">-- Select Customer --</option>
+              {% for c in customers %}
+              <option value="{{ c._id }}">{{ c.name or c.username }} ({{ c.username }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Create Shipment</button>
+            <a href="{{ url_for('shipments') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

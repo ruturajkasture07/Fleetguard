@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Create Shipment - FleetGuard{% endblock %}
+{% block page_title %}Create Shipment Request{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-9">
+    <div class="form-card">
+      <h5><i class="fas fa-boxes-stacked me-2"></i>New Shipment Request</h5>
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Item Type *</label>
+            <select name="item_type" class="form-select" required>
+              <option value="">Select Item Type</option>
+              {% for it in ['Car Parts','Electronics','Furniture','Textiles','Chemicals','Food & Beverages','Construction Material','Machinery','Pharmaceuticals','General Goods'] %}
+              <option>{{ it }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Weight (kg) *</label>
+            <input type="number" name="weight" class="form-control" placeholder="e.g. 5000" required min="1" step="0.1"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Pickup Location *</label>
+            <input type="text" name="pickup_location" class="form-control" placeholder="City / Address" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Delivery Location *</label>
+            <input type="text" name="delivery_location" class="form-control" placeholder="City / Address" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dimensions (Optional)</label>
+            <input type="text" name="dimensions" class="form-control" placeholder="e.g. 2x2x3 m"/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Payment Amount (INR) *</label>
+            <input type="number" min="0" step="0.01" name="payment_amount" class="form-control" placeholder="e.g. 3500" required>
+          </div>
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Submit Request</button>
+            <a href="{{ url_for('shipments') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

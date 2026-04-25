@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FleetGuard – Register</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet"/>
+</head>
+<body style="margin:0;padding:0;">
+<div class="auth-layout">
+
+  <!-- Left branding panel -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <i class="fas fa-shield-halved icon"></i>
+      <div>
+        <div class="name">FleetGuard</div>
+        <div class="sub">Smart Transport Management</div>
+      </div>
+    </div>
+    <div class="auth-tagline">Join the fleet.<br><strong>Track everything.</strong></div>
+    <ul class="feature-list">
+      <li><i class="fas fa-check-circle"></i> Create and track shipments</li>
+      <li><i class="fas fa-check-circle"></i> Real-time delivery updates</li>
+      <li><i class="fas fa-check-circle"></i> Secure payment tracking</li>
+      <li><i class="fas fa-check-circle"></i> 24/7 fleet visibility</li>
+    </ul>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="auth-right">
+    <h2>Create Account</h2>
+    <p class="auth-sub">Register as a customer to track your shipments</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} mb-3">
+            <i class="fas fa-circle-info me-2"></i>{{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">First Name</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-user"></i></span>
+          <input type="text" name="name" class="form-control" placeholder="Your full name" required/>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Surname</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+          <input type="text" name="surname" class="form-control" placeholder="Your surname" required/>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-at"></i></span>
+          <input type="text" name="username" class="form-control" placeholder="Choose a username" required/>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+          <input type="email" name="email" class="form-control" placeholder="your@email.com" required/>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Phone</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-phone"></i></span>
+          <input type="tel" name="phone" class="form-control" placeholder="+91 9876543210" required/>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Role</label>
+        <div class="d-flex gap-3 mt-1">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="role" id="roleCustomer" value="customer" checked>
+            <label class="form-check-label" for="roleCustomer">Customer</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="role" id="roleDriver" value="driver">
+            <label class="form-check-label" for="roleDriver">Driver</label>
+          </div>
+        </div>
+      </div>
+      <div id="driverFields" style="display: none;">
+        <div class="mb-3">
+          <label class="form-label">License Number</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+            <input type="text" name="license_number" class="form-control" placeholder="Driving License Number"/>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Experience</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-briefcase"></i></span>
+            <input type="number" name="experience" class="form-control" placeholder="Experience (in years)" min="0"/>
+          </div>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Create a password" required/>
+        </div>
+      </div>
+      <button type="submit" class="btn-auth-submit">
+        <i class="fas fa-user-plus me-2"></i>Create Account
+      </button>
+    </form>
+
+    <div class="text-center mt-3">
+      <small class="text-muted">Already have an account?
+        <a href="{{ url_for('login') }}" class="text-decoration-none">Sign in</a>
+      </small>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const roleCustomer = document.getElementById('roleCustomer');
+    const roleDriver = document.getElementById('roleDriver');
+    const driverFields = document.getElementById('driverFields');
+    const licenseInput = driverFields.querySelector('input[name="license_number"]');
+    const experienceInput = driverFields.querySelector('input[name="experience"]');
+
+    function toggleDriverFields() {
+      if (roleDriver.checked) {
+        driverFields.style.display = 'block';
+        licenseInput.required = true;
+        experienceInput.required = true;
+      } else {
+        driverFields.style.display = 'none';
+        licenseInput.required = false;
+        experienceInput.required = false;
+      }
+    }
+
+    roleCustomer.addEventListener('change', toggleDriverFields);
+    roleDriver.addEventListener('change', toggleDriverFields);
+
+    // Prevent double submission
+    const form = document.querySelector('form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    form.addEventListener('submit', function() {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    });
+  });
+</script>
+</body>
+</html>

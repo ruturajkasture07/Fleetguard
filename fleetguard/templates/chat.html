@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Shipment {{ shipment.shipment_id }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .message-bubble.sent {
+        border-bottom-right-radius: 2px !important;
+    }
+    .message-bubble.received {
+        border-bottom-left-radius: 2px !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0" style="border-radius: 15px; overflow: hidden;">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Chat: {{ shipment.shipment_id }}
+                    </h5>
+                    <div class="d-flex align-items-center">
+                        <button id="startCallBtn" class="btn btn-sm btn-success me-2" title="Start Internet Call">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <a href="{{ url_for('shipments') }}" class="btn btn-sm btn-light">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Call Modal -->
+                <div id="callModal" class="modal" tabindex="-1" style="display:none; background: rgba(0,0,0,0.8); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content bg-dark text-white border-0 shadow-lg" style="border-radius: 20px;">
+                            <div class="modal-body text-center p-5">
+                                <div class="call-avatar mb-4">
+                                    <div class="bg-primary d-inline-block rounded-circle p-4 shadow" style="width: 100px; height: 100px;">
+                                        <i class="fas fa-user fa-4x"></i>
+                                    </div>
+                                </div>
+                                <h4 id="callStatus">Connecting...</h4>
+                                <p class="text-muted mb-4">Internet Call - Shipment {{ shipment.shipment_id }}</p>
+                                
+                                <div class="d-flex justify-content-center gap-3">
+                                    <button id="muteBtn" class="btn btn-secondary btn-circle p-3 rounded-circle">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                    <button id="endCallBtn" class="btn btn-danger btn-circle p-3 rounded-circle">
+                                        <i class="fas fa-phone-slash"></i>
+                                    </button>
+                                </div>
+
+                                <video id="localVideo" autoplay muted style="display:none;"></video>
+                                <video id="remoteVideo" autoplay style="display:none;"></video>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body bg-light" style="height: 450px; overflow-y: auto;" id="chat-box">
+                    {% if not messages %}
+                        <div class="text-center text-muted mt-5">
+                            <i class="fas fa-info-circle fa-3x mb-3"></i>
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    {% else %}
+                        {% for msg in messages %}
+                            <div class="d-flex mb-3 {% if msg.sender_id|string == session.user_id %}justify-content-end{% endif %}">
+                                <div class="message-bubble p-3 shadow-sm {% if msg.sender_id|string == session.user_id %}bg-primary text-white sent{% else %}bg-white text-dark received{% endif %}" 
+                                     style="max-width: 75%; border-radius: 15px;">
+                                    <div class="small fw-bold mb-1">
+                                        {{ msg.sender_role|capitalize }}
+                                    </div>
+                                    <div>{{ msg.message }}</div>
+                                    <div class="text-end small mt-1" style="opacity: 0.7; font-size: 0.75rem;">
+                                        {{ msg.created_at.strftime('%H:%M') if msg.created_at is not string else msg.created_at[11:16] }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="card-footer bg-white p-3">
+                    <form action="{{ url_for('chat_send') }}" method="POST" class="d-flex">
+                        <input type="hidden" name="shipment_id" value="{{ shipment.shipment_id }}">
+                        <input type="text" name="message" class="form-control me-2" placeholder="Type your message..." required autocomplete="off">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const shipmentId = "{{ shipment.shipment_id }}";
+    const userId = "{{ session.user_id }}";
+    const startCallBtn = document.getElementById('startCallBtn');
+    const callModal = document.getElementById('callModal');
+    const endCallBtn = document.getElementById('endCallBtn');
+    const callStatus = document.getElementById('callStatus');
+    
+    let localStream;
+    let peerConnection;
+    const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+    // Scroll to bottom on load
+    window.onload = function() {
+        var chatBox = document.getElementById('chat-box');
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Start polling for signals
+        setInterval(checkSignals, 3000);
+    };
+
+    async function startCall() {
+        callModal.style.display = 'block';
+        callStatus.innerText = "Ringing...";
+        
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            peerConnection = new RTCPeerConnection(config);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    sendSignal({ type: 'candidate', candidate: event.candidate });
+                }
+            };
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            sendSignal({ type: 'offer', sdp: offer.sdp });
+            
+        } catch (err) {
+            console.error("Error starting call:", err);
+            callStatus.innerText = "Error: " + err.message;
+        }
+    }
+
+    async function handleOffer(offer) {
+        callModal.style.display = 'block';
+        callStatus.innerText = "Incoming Call...";
+        
+        // In a real app, you'd have an "Accept" button. For now, we auto-answer for demo.
+        if (confirm("Incoming Internet Call. Accept?")) {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            peerConnection = new RTCPeerConnection(config);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+            
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    sendSignal({ type: 'candidate', candidate: event.candidate });
+                }
+            };
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: offer.sdp }));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            sendSignal({ type: 'answer', sdp: answer.sdp });
+            callStatus.innerText = "On Call";
+        }
+    }
+
+    async function handleAnswer(answer) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answer.sdp }));
+        callStatus.innerText = "On Call";
+    }
+
+    function sendSignal(data) {
+        fetch(`/chat/signal/${shipmentId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    }
+
+    async function checkSignals() {
+        const res = await fetch(`/chat/signal/${shipmentId}`);
+        const data = await res.json();
+        
+        if (data.type === 'offer' && !peerConnection) {
+            handleOffer(data);
+        } else if (data.type === 'answer' && peerConnection) {
+            handleAnswer(data);
+        } else if (data.type === 'candidate' && peerConnection) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+    }
+
+    startCallBtn.addEventListener('click', startCall);
+    endCallBtn.addEventListener('click', () => {
+        if (peerConnection) peerConnection.close();
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        callModal.style.display = 'none';
+        peerConnection = null;
+        sendSignal({ type: 'end' });
+    });
+</script>
+{% endblock %}

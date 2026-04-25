@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Customer Dashboard – FleetGuard{% endblock %}
+{% block page_title %}Customer Dashboard{% endblock %}
+{% block content %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-blue"><i class="fas fa-boxes-stacked"></i></div>
+      <div><div class="stat-value">{{ total_shipments }}</div><div class="stat-label">Total Shipments</div></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-amber"><i class="fas fa-truck-fast"></i></div>
+      <div><div class="stat-value">{{ in_transit }}</div><div class="stat-label">In Transit</div></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-green"><i class="fas fa-indian-rupee-sign"></i></div>
+      <div><div class="stat-value">{{ paid_shipments }}</div><div class="stat-label">Paid Shipments</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="section-title mb-0">Shipment Tracking</h6>
+  <a href="{{ url_for('customer_create_shipment') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i> Create Shipment
+  </a>
+</div>
+
+<div class="card-table">
+  {% if my_shipments %}
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>Shipment ID</th><th>Item</th><th>Weight</th>
+        <th>Pickup</th><th>Delivery</th><th>Truck</th><th>Live Tracking</th>
+        <th>Progress</th><th>Status</th><th>Payment</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in my_shipments %}
+      <tr>
+        <td><code>{{ s.shipment_id }}</code></td>
+        <td>{{ s.item_type }}</td>
+        <td>{{ s.weight }} kg</td>
+        <td><small>{{ s.pickup_location }}</small></td>
+        <td><small>{{ s.delivery_location }}</small></td>
+        <td><span class="truck-badge">{{ s.assigned_truck or 'TBD' }}</span></td>
+        <td>
+          {% if s.live_location %}
+            <div class="small">{{ s.live_location }}</div>
+            {% if s.live_latitude is not none and s.live_longitude is not none %}
+              <div class="mt-2" style="width: 150px; height: 100px; border-radius: 4px; overflow: hidden; border: 1px solid #ccc;">
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  frameborder="0" 
+                  scrolling="no" 
+                  marginheight="0" 
+                  marginwidth="0" 
+                  src="https://maps.google.com/maps?q={{ s.live_latitude }},{{ s.live_longitude }}&z=12&output=embed">
+                </iframe>
+              </div>
+            {% endif %}
+          {% else %}
+            <span class="small text-muted">Not available</span>
+          {% endif %}
+        </td>
+        <td>
+          <!-- Progress tracker dots -->
+          <div class="shipment-progress" title="{{ s.status }}">
+            <div class="sp-step {% if s.status in ['Pending','In Transit','Delivered'] %}done{% endif %}"></div>
+            <div class="sp-line {% if s.status in ['In Transit','Delivered'] %}done{% elif s.status == 'Pending' %}{% endif %}"></div>
+            <div class="sp-step {% if s.status in ['In Transit','Delivered'] %}active{% endif %}"></div>
+            <div class="sp-line {% if s.status == 'Delivered' %}done{% endif %}"></div>
+            <div class="sp-step {% if s.status == 'Delivered' %}done{% endif %}"></div>
+          </div>
+        </td>
+        <td>
+          {% if s.status == 'Pending' %}<span class="badge-status bs-pending">{{ s.status }}</span>
+          {% elif s.status == 'In Transit' %}<span class="badge-status bs-transit">{{ s.status }}</span>
+          {% else %}<span class="badge-status bs-delivered">{{ s.status }}</span>{% endif %}
+        </td>
+        <td>
+          {% if s.payment_status == 'Paid' %}
+            <span class="badge-status bs-paid">Paid</span>
+          {% else %}
+            <span class="badge-status bs-unpaid">{{ s.payment_status or 'Unpaid' }}</span>
+          {% endif %}
+          {% if s.payment_amount and s.payment_amount > 0 %}
+            <div class="small text-muted mt-1">₹{{ '%.2f'|format(s.payment_amount) }}</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><i class="fas fa-box-open"></i><p>No shipments yet. Create your first shipment above.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

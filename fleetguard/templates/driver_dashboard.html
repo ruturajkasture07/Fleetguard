@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Driver Dashboard – FleetGuard{% endblock %}
+{% block page_title %}Driver Portal{% endblock %}
+{% block content %}
+
+{% if driver_notifications %}
+<div class="mb-4">
+  <h6 class="section-title mb-2"><i class="fas fa-bell me-2 text-warning"></i>Notifications</h6>
+  {% for n in driver_notifications %}
+  <div class="alert {% if n.read_at %}alert-secondary{% else %}alert-success{% endif %} d-flex align-items-center justify-content-between py-2 mb-2" role="alert">
+    <div class="small">{{ n.message }}</div>
+    {% if not n.read_at %}
+    <form method="POST" action="{{ url_for('driver_notification_read', nid=n.id) }}" class="ms-2 flex-shrink-0">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if driver %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-blue"><i class="fas fa-id-card"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:1.2rem;">{{ driver.driver_name }}</div>
+        <div class="stat-label">Driver Name</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-green"><i class="fas fa-truck"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:1.2rem;">{{ driver.assigned_truck or 'None' }}</div>
+        <div class="stat-label">Assigned Truck</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon si-purple"><i class="fas fa-id-badge"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:1.2rem;">{{ driver.license_number }}</div>
+        <div class="stat-label">License Number</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Location & Route Controls (FR-505, FR-509) -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-3 border-0 shadow-sm" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px;">
+      <h6 class="mb-3 small text-uppercase fw-bold text-muted"><i class="fas fa-map-marker-alt me-2"></i>Location Sharing Control (FR-505)</h6>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          {% if driver.paused_until and driver.paused_until > now_str %}
+            <span class="badge bg-danger mb-1">Paused until {{ driver.paused_until[11:16] }}</span>
+            <div class="small text-muted">Sharing will resume automatically.</div>
+          {% else %}
+            <span class="badge bg-success mb-1">Active</span>
+            <div class="small text-muted">Pushing GPS every 30m</div>
+          {% endif %}
+        </div>
+        <form method="POST" action="{{ url_for('driver_pause_location') }}">
+          <button type="submit" class="btn btn-sm btn-outline-danger" {% if driver.paused_until and driver.paused_until > now_str %}disabled{% endif %}>
+            <i class="fas fa-pause me-1"></i> Pause 1hr
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <!-- FR-509: AI Re-Route Notifications -->
+    {% if transit_shipment %}
+    <div class="card p-3 border-0 shadow-sm bg-primary text-white" style="border-radius: 12px;">
+      <h6 class="mb-2 small text-uppercase fw-bold"><i class="fas fa-robot me-2"></i>AI Route Optimization (FR-509)</h6>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fw-bold">Faster Route Available!</div>
+          <div class="small opacity-75">Estimated savings: 25 mins</div>
+        </div>
+        <div class="d-flex gap-2">
+          <form method="POST" action="{{ url_for('driver_reroute_action', shipment_id=transit_shipment.id, action='Accept') }}">
+            <button type="submit" class="btn btn-sm btn-light text-primary fw-bold">Accept</button>
+          </form>
+          <form method="POST" action="{{ url_for('driver_reroute_action', shipment_id=transit_shipment.id, action='Ignore') }}">
+            <button type="submit" class="btn btn-sm btn-outline-light">Ignore</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card p-3 border-0 shadow-sm" style="border-radius: 12px; background: #f8f9fa;">
+      <div class="text-center py-2 text-muted small">
+        <i class="fas fa-route me-2"></i>No active re-route suggestions
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<h6 class="section-title mb-3">Quick Actions</h6>
+<div class="driver-action-grid mb-4">
+  <a href="{{ url_for('location_update') }}" class="driver-action-card driver-action-card--blue">
+    <span class="dac-icon" style="color:var(--color-info);"><i class="fas fa-location-dot"></i></span>
+    <h6>Update Location</h6>
+    <small>Share current position</small>
+  </a>
+  <a href="{{ url_for('fuel_request') }}" class="driver-action-card driver-action-card--warning">
+    <span class="dac-icon" style="color:var(--color-warning);"><i class="fas fa-gas-pump"></i></span>
+    <h6>Fuel Request</h6>
+    <small>Emergency fuel alert</small>
+  </a>
+  <a href="{{ url_for('accident_report') }}" class="driver-action-card driver-action-card--danger">
+    <span class="dac-icon" style="color:var(--color-danger);"><i class="fas fa-car-burst"></i></span>
+    <h6>Report Accident</h6>
+    <small>Alert admin immediately</small>
+  </a>
+  <a href="{{ url_for('breakdown_report') }}" class="driver-action-card driver-action-card--warning">
+    <span class="dac-icon" style="color:var(--color-warning);"><i class="fas fa-wrench"></i></span>
+    <h6>Breakdown Report</h6>
+    <small>Mechanical issue</small>
+  </a>
+  <a href="{{ url_for('call_request') }}" class="driver-action-card driver-action-card--purple">
+    <span class="dac-icon" style="color:var(--color-purple);"><i class="fas fa-phone-volume"></i></span>
+    <h6>Call Admin</h6>
+    <small>Request urgent call</small>
+  </a>
+  <a href="{{ url_for('shipments') }}" class="driver-action-card driver-action-card--green">
+    <span class="dac-icon" style="color:var(--color-success);"><i class="fas fa-boxes-stacked"></i></span>
+    <h6>My Shipments</h6>
+    <small>View assigned trips</small>
+  </a>
+</div>
+
+<!-- Recent Shipments + Fuel Requests -->
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-boxes-stacked me-2"></i>My Recent Shipments</h6>
+        <a href="{{ url_for('shipments') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if my_shipments %}
+      <table class="table table-hover">
+        <thead><tr><th>Shipment ID</th><th>Item</th><th>Route</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for s in my_shipments %}
+          <tr>
+            <td><code>{{ s.shipment_id }}</code></td>
+            <td>{{ s.item_type }}</td>
+            <td><small>{{ s.pickup_location }} → {{ s.delivery_location }}</small></td>
+            <td>
+              {% if s.status == 'Pending' %}<span class="badge-status bs-pending">{{ s.status }}</span>
+              {% elif s.status == 'In Transit' %}<span class="badge-status bs-transit">{{ s.status }}</span>
+              {% else %}<span class="badge-status bs-delivered">{{ s.status }}</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-boxes-stacked"></i><p>No shipments assigned</p></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-gas-pump me-2 text-warning"></i>Fuel Requests</h6>
+      </div>
+      {% if my_fuel_requests %}
+      <div class="p-2">
+        {% for r in my_fuel_requests %}
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+          <div>
+            <div class="fw-semibold small">{{ r.truck_number }}</div>
+            <div class="text-muted" style="font-size:.75rem;">₹{{ r.amount }} – {{ r.fuel_required }}L</div>
+          </div>
+            {% if r.status == 'Approved' %}<span class="badge-status bs-approved">{{ r.status }}</span>
+          {% elif r.status == 'Rejected' %}<span class="badge-status bs-rejected">{{ r.status }}</span>
+          {% else %}<span class="badge-status bs-pending">{{ r.status }}</span>{% endif %}
+            {% if r.payment_status == 'Paid' %}<div class="mt-1"><span class="badge-status bs-paid small">Paid</span></div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-gas-pump"></i><p>No fuel requests</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Users - FleetGuard{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block content %}
+<h6 class="section-title mb-3">All Users ({{ users|length }})</h6>
+<div class="card-table">
+  {% if users %}
+  <table class="table table-hover">
+    <thead><tr><th>#</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ u.name or '-' }}</td>
+        <td><code>{{ u.username }}</code></td>
+        <td>{{ u.email or '-' }}</td>
+        <td><span class="badge-status bs-role-{{ u.role }}">{{ u.role }}</span></td>
+        <td>
+          {% if u.role != 'admin' %}
+          <form method="POST" action="{{ url_for('delete_user', user_id=u._id) }}" class="d-inline" onsubmit="return confirm('Delete this user?');">
+            <button type="submit" class="btn-action btn-action--danger"><i class="fas fa-trash"></i></button>
+          </form>
+          {% else %}
+          <span class="text-muted small">Protected</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><i class="fas fa-users"></i><div>No users found.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

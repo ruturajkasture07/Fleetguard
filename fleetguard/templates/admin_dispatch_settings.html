@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Dispatch Settings – FleetGuard{% endblock %}
+{% block page_title %}Intelligent Dispatch Engine Configuration{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-card">
+            <h6 class="mb-4"><i class="fas fa-cog me-2"></i>Algorithm Parameters</h6>
+            <form method="POST">
+                <div class="mb-4">
+                    <label class="form-label">Optimization Goal (FR-412)</label>
+                    <select name="optimization_goal" class="form-select">
+                        <option value="MINIMIZE_DEADHEAD" {% if settings.optimization_goal == 'MINIMIZE_DEADHEAD' %}selected{% endif %}>Minimize Deadhead (Proximity)</option>
+                        <option value="BALANCE_WORKLOAD" {% if settings.optimization_goal == 'BALANCE_WORKLOAD' %}selected{% endif %}>Balance Workload (Even distribution)</option>
+                        <option value="MINIMIZE_COST" {% if settings.optimization_goal == 'MINIMIZE_COST' %}selected{% endif %}>Minimize Cost (Efficiency)</option>
+                    </select>
+                    <div class="form-text">Primary goal for the dispatch matching engine.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Confidence Threshold (%) (FR-413)</label>
+                    <input type="number" step="0.01" name="confidence_threshold" class="form-control" value="{{ settings.confidence_threshold }}" min="0.5" max="1.0">
+                    <div class="form-text">Score threshold (e.g., 0.85 for 85%) for automated assignment. Below this, manual review is required.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Driver Acceptance Window (Minutes) (FR-416)</label>
+                    <input type="number" name="driver_acceptance_window" class="form-control" value="{{ settings.driver_acceptance_window }}" min="1">
+                    <div class="form-text">Time allowed for a driver to accept an automated assignment before re-triggering dispatch.</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Configuration</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-4 bg-light border-0">
+            <h6><i class="fas fa-info-circle me-2"></i>How it works</h6>
+            <p class="small text-muted">The Intelligent Dispatch Engine (IDE) evaluates every available driver-truck combination based on cargo weight, truck capacity, driver performance, and real-time proximity.</p>
+            <ul class="small text-muted">
+                <li><strong>Auto-Assignment:</strong> Triggered if a score exceeds the threshold.</li>
+                <li><strong>Manual Fallback:</strong> If no candidate meets the threshold, the system flags the shipment for review.</li>
+                <li><strong>Audit Trail:</strong> Every decision is logged for operational analysis.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

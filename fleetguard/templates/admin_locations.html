@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Live Tracking – FleetGuard{% endblock %}
+{% block page_title %}Fleet Tracking & AI Routing{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  #live-map { height: 500px; width: 100%; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 8px 30px rgba(0,0,0,0.1); }
+  .alert-card { border-left: 4px solid var(--danger); background: #fff5f5; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- FR-502, FR-515, FR-516: Enhanced Map Visualization -->
+<h6 class="section-title mb-3">Real-Time Fleet Tracking Map (FR-502)</h6>
+<div id="live-map"></div>
+
+<div class="row">
+  <div class="col-md-8">
+    <h6 class="section-title mb-3">Live Driver Status</h6>
+    <div class="card-table mb-4">
+      {% if locations %}
+      <table class="table table-hover">
+        <thead>
+          <tr><th>Driver</th><th>Truck</th><th>Current Location</th><th>Last Updated</th></tr>
+        </thead>
+        <tbody>
+          {% for loc in locations %}
+          <tr>
+            <td><strong>{{ loc.driver_name }}</strong></td>
+            <td><span class="truck-badge">{{ loc.truck_number }}</span></td>
+            <td><i class="fas fa-location-dot text-danger me-1"></i>{{ loc.current_location }}</td>
+            <td class="text-muted small">
+              {% if loc.updated_at %}{{ loc.updated_at }}{% else %}Unknown{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state small py-3"><p>No location data available yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <!-- FR-512: Route Alerts -->
+    <h6 class="section-title mb-3">Critical Route Alerts</h6>
+    {% if route_alerts %}
+      {% for alert in route_alerts %}
+      <div class="card p-3 alert-card">
+        <div class="d-flex justify-content-between">
+          <span class="badge bg-danger">{{ alert.alert_type }}</span>
+          <small class="text-muted">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') if alert.created_at.strftime else alert.created_at }}</small>
+        </div>
+        <div class="mt-2 small"><strong>{{ alert.shipment_id }}:</strong> {{ alert.message }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="alert alert-light small"><i class="fas fa-check-circle text-success me-2"></i>No active route deviations.</div>
+    {% endif %}
+  </div>
+</div>
+
+<h6 class="section-title mt-4 mb-3">Historical Location Feed</h6>
+<div class="card-table">
+  <table class="table table-hover small">
+    <thead>
+      <tr><th>Driver</th><th>Truck</th><th>Location</th><th>Source</th><th>Updated At</th></tr>
+    </thead>
+    <tbody>
+      {% for u in recent_updates %}
+      <tr>
+        <td>{{ u.driver_name }}</td>
+        <td>{{ u.truck_number }}</td>
+        <td>{{ u.current_location }}</td>
+        <td><span class="badge-status {{ 'bs-paid' if u.source == 'Device' else 'bs-pending' }}">{{ u.source or 'Manual' }}</span></td>
+        <td class="text-muted">{{ u.updated_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('live-map').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const locations = {{ locations|tojson }};
+  const routeData = {{ route_data|tojson }};
+
+  // Add markers for current locations
+  locations.forEach(loc => {
+    if (loc.latitude && loc.longitude) {
+      L.marker([loc.latitude, loc.longitude])
+        .addTo(map)
+        .bindPopup(`<b>${loc.driver_name}</b><br>${loc.truck_number}<br>${loc.current_location}`);
+    }
+  });
+
+  // FR-515: Route Overlay (Planned = Blue, Traveled = Green)
+  routeData.forEach(route => {
+    if (route.planned_route_json) {
+      const plannedPoints = JSON.parse(route.planned_route_json);
+      L.polyline(plannedPoints, {color: 'blue', weight: 4, opacity: 0.6, dashArray: '10, 10'})
+        .addTo(map)
+        .bindPopup(`Planned Route: ${route.shipment_id}`);
+    }
+  });
+</script>
+{% endblock %}

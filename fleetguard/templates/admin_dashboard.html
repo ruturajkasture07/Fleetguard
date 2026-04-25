@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – FleetGuard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block content %}
+
+<!-- Gradient Stat Cards Row 1 (Trucks) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-card--blue">
+      <div class="stat-icon"><i class="fas fa-truck"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.total_trucks }}</div>
+        <div class="stat-label">Total Trucks</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-card--green">
+      <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.available_trucks }}</div>
+        <div class="stat-label">Available</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-card--purple">
+      <div class="stat-icon"><i class="fas fa-route"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.on_route_trucks }}</div>
+        <div class="stat-label">On Route</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-card--amber">
+      <div class="stat-icon"><i class="fas fa-screwdriver-wrench"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.maintenance_trucks }}</div>
+        <div class="stat-label">Maintenance</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stat Cards Row 2 (Alerts & Analytics) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-blue"><i class="fas fa-users"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.total_customers }}</div>
+        <div class="stat-label">Customers</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-green"><i class="fas fa-coins"></i></div>
+      <div>
+        <div class="stat-value">₹{{ stats.cpm }}</div>
+        <div class="stat-label">CPM <small class="text-success">{{ stats.cpm_change }}</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-red"><i class="fas fa-gas-pump"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.pending_fuel }}</div>
+        <div class="stat-label">Fuel Req.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-red"><i class="fas fa-car-burst"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.recent_accidents }}</div>
+        <div class="stat-label">Accidents</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-amber"><i class="fas fa-wrench"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.open_breakdowns }}</div>
+        <div class="stat-label">Breakdowns</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon si-purple"><i class="fas fa-phone-volume"></i></div>
+      <div>
+        <div class="stat-value">{{ stats.pending_calls }}</div>
+        <div class="stat-label">Call Req.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FR-907: Predicted Delay Alert Feed -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card-table border-danger">
+      <div class="card-table-header bg-danger-subtle">
+        <h6 class="text-danger mb-0"><i class="fas fa-clock-rotate-left me-2"></i>Predicted Delay Alert Feed (High Risk)
+        </h6>
+      </div>
+      {% if high_risk_delays %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Driver</th>
+            <th>Est. Delay</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in high_risk_delays %}
+          <tr class="table-danger">
+            <td><code>{{ d.shipment_id }}</code></td>
+            <td>{{ d.driver_name }}</td>
+            <td class="text-danger fw-bold">{{ d.estimated_delay }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state small py-3">
+        <p class="mb-0">No high-risk delays predicted</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- FR-414: Manual Assignment Required -->
+  <div class="col-md-6">
+    <div class="card-table border-danger border-start border-4">
+      <div class="card-table-header">
+        <h6 class="text-danger"><i class="fas fa-hand-holding-hand me-2"></i>Requires Manual Assignment (FR-414)</h6>
+        <a href="{{ url_for('shipments') }}" class="btn-action btn-action--danger">Resolve All</a>
+      </div>
+      {% if manual_assignment_required %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Best Match</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in manual_assignment_required %}
+          {% set meta = m.dispatch_metadata|from_json if m.dispatch_metadata else [] %}
+          <tr>
+            <td><code>{{ m.shipment_id }}</code></td>
+            <td><small>{{ meta[0].driver_name if meta else 'No matches' }}</small></td>
+            <td>
+              {% if meta %}
+              <span class="badge bg-warning text-dark">{{ (meta[0].score * 100)|round }}%</span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state small py-3">
+        <p class="mb-0 text-success"><i class="fas fa-check-circle me-1"></i>No shipments pending manual assignment</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- FR-904: Location Update Frequency -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-signal me-2 text-primary"></i>Location Update Frequency Status</h6>
+      </div>
+      {% if active_shipments_loc %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Shipment ID</th>
+            <th>Last Update</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in active_shipments_loc %}
+          <tr>
+            <td><code>{{ s.shipment_id }}</code></td>
+            <td><small>{{ s.last_loc_update or 'No updates' }}</small></td>
+            <td>
+              {% if s.last_loc_update %}
+              <span class="badge bg-success">Active</span>
+              {% else %}
+              <span class="badge bg-warning">Stale</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state small py-3">
+        <p class="mb-0">No active shipments to track</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="chart-card">
+      <div class="card-table-header">
+        <h6><i class="fas fa-chart-line me-2 text-primary"></i>Monthly Trips Overview</h6>
+      </div>
+      <div class="p-3" style="height:240px;">
+        <canvas id="tripsChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="chart-card">
+      <div class="card-table-header">
+        <h6><i class="fas fa-chart-pie me-2 text-primary"></i>Truck Status</h6>
+      </div>
+      <div class="p-3 d-flex align-items-center justify-content-center" style="height:240px;">
+        <canvas id="truckStatusChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alert Tables -->
+<div class="row g-3">
+  <!-- Global Tracking Map (FR-902) -->
+  <div class="col-md-12 mb-4">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-map-location-dot me-2 text-primary"></i>Live Fleet Tracking (In Transit)</h6>
+      </div>
+      <div class="p-0" style="height: 450px; position: relative;">
+        {% if active_locations %}
+        <div id="fleet-map" style="width: 100%; height: 100%;"></div>
+        {% else %}
+        <div class="empty-state"><i class="fas fa-map"></i>
+          <p>No trucks currently in transit</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Fuel Requests -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-gas-pump me-2 text-danger"></i>Pending Fuel Requests</h6>
+        <a href="{{ url_for('admin_fuel_requests') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if recent_fuel %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Truck</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_fuel %}
+          <tr>
+            <td>{{ r.driver_name }}</td>
+            <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+            <td>₹{{ r.amount }}</td>
+            <td><span class="badge-status bs-pending">{{ r.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-gas-pump"></i>
+        <p>No pending fuel requests</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Emergency Fund Requests (FR-903) -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-hand-holding-dollar me-2 text-danger"></i>Emergency Fund Requests</h6>
+        <a href="{{ url_for('admin_accidents') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if pending_funds %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in pending_funds %}
+          <tr>
+            <td>{{ f.driver_name }}</td>
+            <td><span class="badge bg-secondary text-white">{{ f.accident_type }}</span></td>
+            <td>₹{{ f.requested_amount }}</td>
+            <td>
+              <form action="{{ url_for('fund_request_action', fund_id=f.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="action" value="Approved">
+                <button type="submit" class="btn btn-xs btn-success py-0 px-1" title="Approve"><i
+                    class="fas fa-check"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-sack-dollar"></i>
+        <p>No pending fund requests</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Accident Reports -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-car-burst me-2 text-danger"></i>Recent Accidents</h6>
+        <a href="{{ url_for('admin_accidents') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if recent_accidents %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Truck</th>
+            <th>Location</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in recent_accidents %}
+          <tr>
+            <td>{{ a.driver_name }}</td>
+            <td><span class="truck-badge">{{ a.truck_number }}</span></td>
+            <td>{{ a.location[:20] }}{% if a.location|length > 20 %}…{% endif %}</td>
+            <td><span class="badge-status bs-reported">{{ a.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-car-burst"></i>
+        <p>No accident reports</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Breakdowns -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-wrench me-2 text-warning"></i>Open Breakdowns</h6>
+        <a href="{{ url_for('admin_breakdowns') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if recent_breakdowns %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Truck</th>
+            <th>Problem</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in recent_breakdowns %}
+          <tr>
+            <td>{{ b.driver_name }}</td>
+            <td><span class="truck-badge">{{ b.truck_number }}</span></td>
+            <td>{{ b.problem_description[:25] }}{% if b.problem_description|length > 25 %}…{% endif %}</td>
+            <td><span class="badge-status bs-open">{{ b.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-wrench"></i>
+        <p>No open breakdowns</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Call Requests -->
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-phone-volume me-2 text-primary"></i>Call Requests</h6>
+        <a href="{{ url_for('admin_call_requests') }}" class="btn-action btn-action--primary">View All</a>
+      </div>
+      {% if recent_calls %}
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Truck</th>
+            <th>Message</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in recent_calls %}
+          <tr>
+            <td>{{ c.driver_name }}</td>
+            <td><span class="truck-badge">{{ c.truck_number }}</span></td>
+            <td>{{ c.message[:30] }}{% if c.message|length > 30 %}…{% endif %}</td>
+            <td><span class="badge-status bs-pending">{{ c.status }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-phone-volume"></i>
+        <p>No pending call requests</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Location Alerts (FR-905, FR-506) -->
+  <div class="col-md-12 mt-4">
+    <div class="row g-3">
+      {% if paused_drivers or missing_updates %}
+      <div class="col-md-6">
+        <div class="card-table">
+          <div class="card-table-header">
+            <h6><i class="fas fa-pause-circle me-2 text-warning"></i>Paused Location Sharing</h6>
+          </div>
+          {% if paused_drivers %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Until</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in paused_drivers %}
+              <tr>
+                <td>{{ d.driver_name }}</td>
+                <td><small>{{ d.paused_until }}</small></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state small py-3">
+            <p class="mb-0">No drivers have paused location</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card-table">
+          <div class="card-table-header">
+            <h6><i class="fas fa-triangle-exclamation me-2 text-danger"></i>Missing Updates (>60m)</h6>
+          </div>
+          {% if missing_updates %}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Driver</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in missing_updates %}
+              <tr>
+                <td>{{ m.driver_name }}</td>
+                <td><small>{{ m.updated_at or 'Never' }}</small></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty-state small py-3">
+            <p class="mb-0">All active drivers updated recently</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  (function () {
+    const primary = '#0a2342', accent = '#e8b04b', info = '#2196f3';
+    const success = '#10b981', warning = '#f59e0b', purple = '#8b5cf6';
+
+    /* Fleet Map Initialization (FR-902) */
+    const activeLocations = {{ active_locations| tojson | safe
+  }};
+  if (document.getElementById('fleet-map') && activeLocations.length > 0) {
+    const map = L.map('fleet-map').setView([20.5937, 78.9629], 5); // Center on India
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markers = [];
+    activeLocations.forEach(loc => {
+      if (loc.latitude && loc.longitude) {
+        const marker = L.marker([loc.latitude, loc.longitude])
+          .addTo(map)
+          .bindPopup(`<b>Truck: ${loc.truck_number}</b><br>Shipment: ${loc.shipment_id}<br>Loc: ${loc.current_location}`);
+        markers.push(marker);
+      }
+    });
+
+    if (markers.length > 0) {
+      const group = new L.featureGroup(markers);
+      map.fitBounds(group.getBounds().pad(0.1));
+    }
+  }
+
+  /* Line chart – Monthly Trips */
+  new Chart(document.getElementById('tripsChart'), {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      datasets: [{
+        label: 'Trips',
+        data: [18, 24, 20, 32, 28, 35, 30, 42, 38, 45, 40, 50],
+        borderColor: info,
+        backgroundColor: 'rgba(33,150,243,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: info,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+
+  /* Doughnut chart – Truck Status */
+  const dashboardStats = {{ stats| tojson }};
+  new Chart(document.getElementById('truckStatusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Available', 'On Route', 'Maintenance'],
+      datasets: [{
+        data: [dashboardStats.available_trucks || 0, dashboardStats.on_route_trucks || 0, dashboardStats.maintenance_trucks || 0],
+        backgroundColor: [success, info, warning],
+        borderWidth: 0,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
+      }
+    });
+  }) ();
+</script>
+{% endblock %}

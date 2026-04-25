@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FleetGuard – Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet"/>
+</head>
+<body style="margin:0;padding:0;">
+<div class="auth-layout">
+
+  <!-- Left branding panel -->
+  <div class="auth-left">
+    <div class="auth-brand">
+      <i class="fas fa-shield-halved icon"></i>
+      <div>
+        <div class="name">FleetGuard</div>
+        <div class="sub">Smart Transport Management</div>
+      </div>
+    </div>
+    <div class="auth-tagline">Fleet management<br><strong>made intelligent.</strong></div>
+    <ul class="feature-list">
+      <li><i class="fas fa-check-circle"></i> Real-time truck &amp; driver tracking</li>
+      <li><i class="fas fa-check-circle"></i> Smart shipment management</li>
+      <li><i class="fas fa-check-circle"></i> Instant emergency alerts</li>
+      <li><i class="fas fa-check-circle"></i> Razorpay fuel payments</li>
+      <li><i class="fas fa-check-circle"></i> Accident &amp; breakdown reporting</li>
+    </ul>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="auth-right">
+    <h2>Welcome Back</h2>
+    <p class="auth-sub">Sign in to your FleetGuard account</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }} mb-3">
+            <i class="fas fa-circle-info me-2"></i>{{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-user"></i></span>
+          <input type="text" name="username" class="form-control" placeholder="Enter username" required autofocus/>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="fas fa-lock"></i></span>
+          <input type="password" name="password" class="form-control" placeholder="Enter password" required/>
+        </div>
+      </div>
+      <button type="submit" class="btn-auth-submit">
+        <i class="fas fa-right-to-bracket me-2"></i>Sign In
+      </button>
+    </form>
+
+    <div class="text-center mt-3">
+      <small class="text-muted">New customer?
+        <a href="{{ url_for('register') }}" class="text-decoration-none">Create account</a>
+      </small><br>
+      <small><a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot password?</a></small>
+    </div>
+
+    <div class="auth-hint">
+      <strong>Demo Credentials:</strong><br>
+      Admin: <code>admin</code> / <code>admin123</code><br>
+      Customer: <code>customer</code> / <code>customer123</code><br>
+      Driver: Create via admin panel
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  /* Ripple on auth submit */
+  document.querySelector('.btn-auth-submit').addEventListener('click', function(e) {
+    const btn = this, rect = btn.getBoundingClientRect();
+    const r = document.createElement('span');
+    const size = Math.max(rect.width, rect.height) * 2;
+    r.style.cssText = 'position:absolute;border-radius:50%;background:rgba(255,255,255,0.3);pointer-events:none;transform:translate(-50%,-50%) scale(0);animation:ripple 0.55s ease forwards;width:'+size+'px;height:'+size+'px;left:'+(e.clientX-rect.left)+'px;top:'+(e.clientY-rect.top)+'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', function(){ r.remove(); });
+  });
+</script>
+</body>
+</html>

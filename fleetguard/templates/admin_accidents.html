@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Accident Reports – FleetGuard{% endblock %}
+{% block page_title %}Accident Reports{% endblock %}
+{% block content %}
+<h6 class="section-title mb-3">All Accident Reports</h6>
+<div class="card-table">
+  {% if accidents %}
+  <table class="table table-hover">
+    <thead>
+      <tr><th>#</th><th>Driver</th><th>Truck</th><th>Location</th><th>Type</th><th>Fund Request</th><th>Description</th><th>Status</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for a in accidents %}
+      <tr>
+        <td class="text-muted small">{{ loop.index }}</td>
+        <td><strong>{{ a.driver_name }}</strong></td>
+        <td><span class="truck-badge">{{ a.truck_number }}</span></td>
+        <td>
+          <small>{{ a.location }}</small>
+          {% if a.latitude is not none and a.longitude is not none %}
+            <div><a class="small" target="_blank" href="https://maps.google.com/?q={{ a.latitude }},{{ a.longitude }}">Map</a></div>
+          {% endif %}
+        </td>
+        <td>
+          {% if a.accident_type == 'Critical' %}
+            <span class="badge-status bg-danger text-white">Critical</span>
+          {% elif a.accident_type == 'Major' %}
+            <span class="badge-status bg-warning text-dark">Major</span>
+          {% else %}
+            <span class="badge-status bg-info text-dark">Small</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if a.fund_amount %}
+            <span class="badge-status bs-unpaid">₹{{ '%.2f'|format(a.fund_amount) }}</span>
+            <div class="small text-muted">Status: {{ a.fund_status or 'Pending' }}</div>
+            {% if a.purpose %}
+              <div class="small mt-1"><strong>Purpose:</strong> {{ a.purpose }}</div>
+            {% endif %}
+              {% if a.fund_status == 'Pending' %}
+                <div class="mt-2 btn-group">
+                  <form action="{{ url_for('fund_request_action', fund_id=a.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="action" value="Approved">
+                    <button type="submit" class="btn btn-sm btn-success">Approve Fund</button>
+                  </form>
+                  <form action="{{ url_for('fund_request_action', fund_id=a.id) }}" method="POST" class="d-inline ms-1">
+                    <input type="hidden" name="action" value="Rejected">
+                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                  </form>
+                </div>
+              {% endif %}
+          {% else %}
+            <small class="text-muted">—</small>
+          {% endif %}
+        </td>
+        <td><small>{{ a.description[:60] }}{% if a.description|length > 60 %}...{% endif %}</small></td>
+        <td>
+          {% if a.status == 'Resolved' %}<span class="badge-status bs-resolved">{{ a.status }}</span>
+          {% else %}<span class="badge-status bs-reported">{{ a.status }}</span>{% endif %}
+        </td>
+        <td class="text-muted small">{{ a.created_at.strftime('%d %b %Y') if a.created_at else '' }}</td>
+        <td>
+          {% if a.status != 'Resolved' %}
+          <form method="POST" action="{{ url_for('resolve_accident', acc_id=a.id) }}">
+            <button type="submit" class="btn-action btn-action--success">
+              <i class="fas fa-check me-1"></i>Resolve
+            </button>
+          </form>
+          {% else %}
+          <span class="text-muted small">Closed</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-car-burst"></i>
+    <div>No accident reports on record.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

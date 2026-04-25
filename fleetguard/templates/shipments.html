@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Shipments – FleetGuard{% endblock %}
+{% block page_title %}Shipment Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="section-title mb-0">Shipments ({{ shipments|length }})</h6>
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('add_shipment') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i> New Shipment
+  </a>
+  {% elif session.get('role') == 'customer' %}
+  <a href="{{ url_for('customer_create_shipment') }}" class="btn btn-primary btn-sm">
+    <i class="fas fa-plus me-1"></i> Create Shipment
+  </a>
+  {% endif %}
+</div>
+<div class="card-table">
+  {% if shipments %}
+  <table class="table table-hover">
+    <thead>
+      <tr><th>Shipment ID</th><th>Item</th><th>Weight</th><th>Dimensions</th><th>Pickup</th><th>Delivery</th><th>Truck</th>
+      {% if session.get('role') == 'customer' %}<th>Live Tracking</th>{% endif %}
+      <th>Status</th><th>Payment</th>
+      {% if session.get('role') == 'admin' %}
+        <th>Update Status</th>
+        <th>Assign Driver</th>
+        <th>Payment Action</th>
+        <th>Customer</th>
+      {% endif %}
+      {% if session.get('role') == 'customer' %}<th>Delivery OTP</th>{% endif %}
+      {% if session.get('role') == 'driver' %}<th>Action</th>{% endif %}
+      <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in shipments %}
+      <tr>
+        <td><code>{{ s.shipment_id }}</code></td>
+        <td>{{ s.item_type }}</td>
+        <td>{{ s.weight }} kg</td>
+        <td><small>{{ s.dimensions or '-' }}</small></td>
+        <td><small>{{ s.pickup_location }}</small></td>
+        <td><small>{{ s.delivery_location }}</small></td>
+        <td><span class="truck-badge">{{ s.assigned_truck }}</span></td>
+        {% if session.get('role') == 'customer' %}
+        <td>
+          {% if s.live_location %}
+            <div class="small">{{ s.live_location }}</div>
+            {% if s.live_latitude is not none and s.live_longitude is not none %}
+              <div class="mt-2" style="width: 150px; height: 100px; border-radius: 4px; overflow: hidden; border: 1px solid #ccc;">
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  frameborder="0" 
+                  scrolling="no" 
+                  marginheight="0" 
+                  marginwidth="0" 
+                  src="https://maps.google.com/maps?q={{ s.live_latitude }},{{ s.live_longitude }}&z=12&output=embed">
+                </iframe>
+              </div>
+            {% endif %}
+          {% else %}
+            <span class="text-muted small">Waiting for driver update</span>
+          {% endif %}
+        </td>
+        {% endif %}
+        <td>
+          {% if s.status == 'Pending Assignment' %}<span class="badge-status bs-pending">{{ s.status }}</span>
+          {% elif s.status == 'Pending Acceptance' %}<span class="badge-status bg-warning text-dark"><i class="fas fa-clock me-1"></i>{{ s.status }}</span>
+          {% elif s.status == 'Requires Manual Assignment' %}<span class="badge-status bg-danger text-white"><i class="fas fa-exclamation-triangle me-1"></i>{{ s.status }}</span>
+          {% elif s.status == 'Assigned' %}<span class="badge-status bs-pending" style="background: var(--primary); color: white;">{{ s.status }}</span>
+          {% elif s.status == 'In Transit' %}<span class="badge-status bs-transit">{{ s.status }}</span>
+          {% else %}<span class="badge-status bs-delivered">{{ s.status }}</span>{% endif %}
+          {% if s.is_frozen %}
+              <span class="badge bg-danger ms-1"><i class="fas fa-snowflake"></i> Frozen</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if s.payment_status == 'Paid' %}<span class="badge-status bs-paid">Paid</span>
+          {% else %}<span class="badge-status bs-unpaid">{{ s.payment_status or 'Unpaid' }}</span>{% endif %}
+          {% if s.payment_amount and s.payment_amount > 0 %}<div class="small text-muted mt-1">₹{{ '%.2f'|format(s.payment_amount) }}</div>{% endif %}
+        </td>
+        {% if session.get('role') == 'admin' %}
+        <td>
+          <form method="POST" action="{{ url_for('update_shipment_status', shipment_id=s.id) }}" class="d-flex gap-1">
+            <select name="status" class="form-select form-select-sm select-sm-inline">
+              <option {% if s.status=='Pending Assignment' %}selected{% endif %}>Pending Assignment</option>
+              <option {% if s.status=='Assigned' %}selected{% endif %}>Assigned</option>
+              <option {% if s.status=='In Transit' %}selected{% endif %}>In Transit</option>
+              <option {% if s.status=='Delivered' %}selected{% endif %}>Delivered</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary"><i class="fas fa-check"></i></button>
+          </form>
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('admin_assign_driver', shipment_id=s.id) }}" class="d-flex flex-column gap-1">
+            <select name="driver_id" class="form-select form-select-sm">
+                <option value="">Select Driver</option>
+                {% for d in available_drivers %}
+                <option value="{{ d.id }}" {% if s.driver_id == d.id %}selected{% endif %}>{{ d.driver_name }} ({{ d.assigned_truck }})</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="override_reason" class="form-control form-control-sm" placeholder="Reason (if override)" style="font-size: 0.75rem;">
+            <button type="submit" class="btn btn-sm btn-accent mt-1">Assign</button>
+          </form>
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('update_shipment_payment', shipment_id=s.id) }}" class="d-flex gap-1">
+            <select name="payment_status" class="form-select form-select-sm select-sm-inline">
+              <option {% if (s.payment_status or 'Unpaid')=='Unpaid' %}selected{% endif %}>Unpaid</option>
+              <option {% if s.payment_status=='Paid' %}selected{% endif %}>Paid</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-indian-rupee-sign"></i></button>
+          </form>
+        </td>
+        <td>
+          <form method="POST" action="{{ url_for('assign_shipment_customer', shipment_id=s.id) }}" class="d-flex gap-1">
+            <select name="customer_id" class="form-select form-select-sm" style="width:190px;">
+              <option value="">Unassigned</option>
+              {% for c in customers %}
+              <option value="{{ c.id }}" {% if s.customer_id == c.id %}selected{% endif %}>
+                {{ c.name or c.username }}
+              </option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-user-check"></i></button>
+          </form>
+        </td>
+        {% endif %}
+        {% if session.get('role') == 'customer' %}
+        <td>
+          {% if s.status == 'In Transit' %}
+            <form method="POST" action="{{ url_for('generate_delivery_otp', shipment_id=s.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-primary">Generate OTP</button>
+            </form>
+            {% if s.delivery_otp %}
+              <div class="small mt-1"><strong>OTP:</strong> {{ s.delivery_otp }}</div>
+            {% endif %}
+          {% else %}
+            <small class="text-muted">Available once in transit</small>
+          {% endif %}
+        </td>
+        {% endif %}
+        {% if session.get('role') == 'driver' %}
+        <td>
+          {% if s.status == 'Pending Acceptance' %}
+            <div class="d-flex gap-1">
+                <form method="POST" action="{{ url_for('driver_shipment_action', shipment_id=s.id, action='Accept') }}">
+                    <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                </form>
+                <form method="POST" action="{{ url_for('driver_shipment_action', shipment_id=s.id, action='Reject') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">Reject</button>
+                </form>
+            </div>
+          {% elif s.status != 'Delivered' and s.status != 'Pending Assignment' %}
+          <form method="POST" action="{{ url_for('driver_complete_delivery', shipment_id=s.id) }}" class="d-flex gap-1">
+            <input type="text" name="delivery_otp" class="form-control form-control-sm" placeholder="OTP" required style="max-width:90px;"/>
+            <button type="submit" class="btn btn-sm btn-success">Done</button>
+          </form>
+          {% else %}
+            <span class="text-success small">Completed</span>
+          {% endif %}
+        </td>
+        {% endif %}
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('chat', shipment_id=s.shipment_id) }}" class="btn btn-sm btn-outline-primary" title="In-App Chat">
+              <i class="fas fa-comments"></i>
+            </a>
+            {% if session.role == 'driver' and s.status == 'Pending Assignment' %}
+              <form action="{{ url_for('driver_self_assign', shipment_id=s.id) }}" method="POST">
+                <button type="submit" class="btn btn-sm btn-outline-success" title="Self-Assign Shipment">
+                  <i class="fas fa-hand-holding-hand"></i>
+                </button>
+              </form>
+            {% endif %}
+            {% if session.role == 'driver' and s.status == 'Assigned' %}
+              <form action="{{ url_for('driver_unassign', shipment_id=s.id) }}" method="POST">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Unassign Shipment">
+                  <i class="fas fa-user-minus"></i>
+                </button>
+              </form>
+            {% endif %}
+            {% if session.role == 'customer' and s.status == 'In Transit' %}
+              <button class="btn btn-sm btn-outline-info show-driver-phone" data-sid="{{ s.shipment_id }}" title="View Driver Phone">
+                <i class="fas fa-phone"></i>
+              </button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-boxes-stacked"></i>
+    <div>No shipments found.</div>
+    {% if session.get('role') == 'admin' %}
+    <a href="{{ url_for('add_shipment') }}" class="btn btn-primary btn-sm mt-2">Create First Shipment</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+<div class="modal fade" id="phoneModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content shadow-lg border-0" style="border-radius: 15px;">
+      <div class="modal-body text-center p-4">
+        <div class="bg-info-subtle d-inline-block rounded-circle p-3 mb-3">
+          <i class="fas fa-phone fa-2x text-info"></i>
+        </div>
+        <h6 class="text-muted mb-1">Driver Contact</h6>
+        <h4 id="driverPhoneNumber" class="fw-bold mb-3"></h4>
+        <button type="button" class="btn btn-secondary btn-sm w-100" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const phoneModal = new bootstrap.Modal(document.getElementById('phoneModal'));
+document.querySelectorAll('.show-driver-phone').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const sid = this.getAttribute('data-sid');
+        fetch(`/driver/phone/${sid}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.phone) {
+                    document.getElementById('driverPhoneNumber').innerText = data.phone;
+                    phoneModal.show();
+                } else {
+                    alert(`Error: ${data.error || 'Could not fetch phone'}`);
+                }
+            })
+            .catch(err => alert('Error fetching driver phone.'));
+    });
+});
+</script>
+{% endblock %}

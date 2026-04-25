@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Truck Profitability – FleetGuard{% endblock %}
+{% block page_title %}Truck Asset Profitability Analysis{% endblock %}
+{% block content %}
+<div class="form-card mb-4">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ start_date or '' }}">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">End Date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ end_date or '' }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Filter Report</button>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ url_for('truck_profitability') }}" class="btn btn-outline-secondary w-100">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="card-table">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Truck Number</th>
+                <th>Type</th>
+                <th>Revenue (Paid)</th>
+                <th>Fuel Costs</th>
+                <th>Maintenance</th>
+                <th>Net Profit</th>
+                <th>Margin</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reports %}
+            <tr class="{{ 'table-success' if r.profit > 10000 else 'table-warning' if r.profit < 0 else '' }}">
+                <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+                <td>{{ r.truck_type }}</td>
+                <td class="text-success fw-bold">₹{{ '%.2f'|format(r.revenue) }}</td>
+                <td class="text-danger">₹{{ '%.2f'|format(r.fuel_costs) }}</td>
+                <td class="text-danger">₹{{ '%.2f'|format(r.maint_costs) }}</td>
+                <td class="fw-bold {{ 'text-success' if r.profit >= 0 else 'text-danger' }}">
+                    ₹{{ '%.2f'|format(r.profit) }}
+                </td>
+                <td>
+                    {% if r.revenue > 0 %}
+                        {{ '%.1f'|format((r.profit / r.revenue) * 100) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

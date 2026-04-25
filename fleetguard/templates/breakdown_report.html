@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Breakdown Report – FleetGuard{% endblock %}
+{% block page_title %}Breakdown Report{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="form-card form-card--warning">
+      <h5><i class="fas fa-wrench me-2 text-warning"></i>Report a Breakdown</h5>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Truck Number *</label>
+          <input type="text" name="truck_number" class="form-control"
+            value="{{ driver.assigned_truck if driver else '' }}" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Current Location *</label>
+          <input type="text" name="location" class="form-control" placeholder="Where is the truck?" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Problem Description *</label>
+          <textarea name="problem_description" class="form-control" rows="4"
+            placeholder="Describe the mechanical issue in detail..." required></textarea>
+        </div>
+        <button type="submit" class="btn-submit-warning">
+          <i class="fas fa-wrench me-2"></i>Submit Breakdown Report
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-history me-2"></i>My Breakdown Reports</h6>
+      </div>
+      {% if my_reports %}
+      <table class="table">
+        <thead><tr><th>Truck</th><th>Problem</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for r in my_reports %}
+          <tr>
+            <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+            <td><small>{{ r.problem_description[:30] }}{% if r.problem_description|length > 30 %}...{% endif %}</small></td>
+            <td>
+              {% if r.status == 'Resolved' %}<span class="badge-status bs-resolved">{{ r.status }}</span>
+              {% else %}<span class="badge-status bs-open">{{ r.status }}</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ r.created_at.strftime('%d %b') if r.created_at else '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-wrench"></i><div>No breakdown reports</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

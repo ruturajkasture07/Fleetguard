@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Truck – FleetGuard{% endblock %}
+{% block page_title %}{{ action }} Truck{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="form-card">
+      <h5><i class="fas fa-truck me-2"></i>{{ action }} Truck</h5>
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Truck Number *</label>
+            <input type="text" name="truck_number" class="form-control" placeholder="e.g. MH12AB1234"
+              value="{{ truck.truck_number if truck else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Truck Type *</label>
+            <select name="truck_type" class="form-select" required>
+              <option value="">Select Type</option>
+              {% for t in ['Flatbed','Container','Refrigerated','Tanker','Curtainsider','Tipper','Box Truck','Car Carrier'] %}
+              <option {% if truck and truck.truck_type == t %}selected{% endif %}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Capacity (tons) *</label>
+            <input type="number" name="capacity" class="form-control" placeholder="e.g. 10"
+              value="{{ truck.capacity if truck else '' }}" min="1" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Status *</label>
+            <select name="status" class="form-select" required>
+              <option {% if truck and truck.status=='Available' %}selected{% endif %}>Available</option>
+              <option {% if truck and truck.status=='On Route' %}selected{% endif %}>On Route</option>
+              <option {% if truck and truck.status=='Maintenance' %}selected{% endif %}>Maintenance</option>
+            </select>
+          </div>
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>{{ action }} Truck</button>
+            <a href="{{ url_for('trucks') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

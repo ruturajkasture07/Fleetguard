@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Accident Report – FleetGuard{% endblock %}
+{% block page_title %}Accident Report{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="form-card form-card--danger">
+      <h5><i class="fas fa-car-burst me-2 text-danger"></i>Report an Accident</h5>
+      <div class="alert alert-danger mb-3">
+        <i class="fas fa-triangle-exclamation me-2"></i>
+        <strong>Emergency?</strong> Call 112 first. Then report here to notify your fleet admin.
+      </div>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Truck Number *</label>
+          <input type="text" name="truck_number" class="form-control"
+            value="{{ driver.assigned_truck if driver else '' }}" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Accident Location *</label>
+          <input type="text" name="location" class="form-control" placeholder="Highway, city, landmark..." required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Accident Severity *</label>
+          <select name="accident_type" class="form-select" required>
+            <option value="Small">Small</option>
+            <option value="Major">Major</option>
+            <option value="Critical">Critical</option>
+          </select>
+          <div class="form-text text-warning">Major/Critical accidents will freeze shipment and alert admin instantly.</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Request Funds (₹)</label>
+            <input type="number" name="requested_amount" class="form-control" placeholder="0.00" step="0.01">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Purpose of Funds</label>
+            <input type="text" name="purpose" class="form-control" placeholder="Hospital, Towing, etc.">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description *</label>
+          <textarea name="description" class="form-control" rows="4"
+            placeholder="Describe what happened, any injuries, damage..." required></textarea>
+        </div>
+        <input type="hidden" name="latitude" id="accLat"/>
+        <input type="hidden" name="longitude" id="accLon"/>
+        <button type="submit" class="btn-submit-danger">
+          <i class="fas fa-triangle-exclamation me-2"></i>Submit Accident Report
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-history me-2"></i>My Accident Reports</h6>
+      </div>
+      {% if my_reports %}
+      <table class="table">
+        <thead><tr><th>Truck</th><th>Location</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for r in my_reports %}
+          <tr>
+            <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+            <td><small>{{ r.location[:25] }}{% if r.location|length > 25 %}...{% endif %}</small></td>
+            <td>
+              {% if r.status == 'Resolved' %}<span class="badge-status bs-resolved">{{ r.status }}</span>
+              {% else %}<span class="badge-status bs-reported">{{ r.status }}</span>{% endif %}
+            </td>
+            <td class="text-muted small">{{ r.created_at.strftime('%d %b') if r.created_at else '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-car-burst"></i><div>No accident reports</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    document.getElementById('accLat').value = pos.coords.latitude;
+    document.getElementById('accLon').value = pos.coords.longitude;
+  });
+})();
+</script>
+{% endblock %}

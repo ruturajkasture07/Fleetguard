@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Fuel Request – FleetGuard{% endblock %}
+{% block page_title %}Fuel Emergency Request{% endblock %}
+{% block content %}
+{% if driver_notifications %}
+<div class="alert alert-success mb-3">
+  <strong><i class="fas fa-circle-check me-1"></i>Updates for you</strong>
+  <ul class="mb-0 mt-2 small">
+    {% for n in driver_notifications %}
+    <li>{{ n.message }}</li>
+    {% endfor %}
+  </ul>
+  <div class="mt-2 small text-muted">Dismiss notifications from your dashboard.</div>
+</div>
+{% endif %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="form-card form-card--warning">
+      <h5><i class="fas fa-gas-pump me-2 text-warning"></i>Request Emergency Fuel</h5>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">Truck Number *</label>
+          <input type="text" name="truck_number" class="form-control"
+            value="{{ driver.assigned_truck if driver else '' }}" placeholder="Truck Number" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Current Location *</label>
+          <input type="text" name="current_location" class="form-control" placeholder="Where are you stranded?" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Fuel Required (Litres) *</label>
+          <input type="number" name="fuel_required" class="form-control" placeholder="e.g. 50" min="1" required/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Estimated Amount (₹) *</label>
+          <input type="number" name="amount" class="form-control" placeholder="e.g. 4500" min="1" step="0.01" required/>
+        </div>
+        <button type="submit" class="btn-submit-warning">
+          <i class="fas fa-paper-plane me-2"></i>Send Fuel Request
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card-table">
+      <div class="card-table-header">
+        <h6><i class="fas fa-history me-2"></i>My Fuel Requests</h6>
+      </div>
+      {% if my_requests %}
+      <table class="table">
+        <thead><tr><th>Truck</th><th>Litres</th><th>Amount</th><th>Status</th><th>Payment</th></tr></thead>
+        <tbody>
+          {% for r in my_requests %}
+          <tr>
+            <td><span class="truck-badge">{{ r.truck_number }}</span></td>
+            <td>{{ r.fuel_required }}L</td>
+            <td>₹{{ r.amount }}</td>
+            <td>
+              {% if r.status == 'Approved' %}<span class="badge-status bs-approved">{{ r.status }}</span>
+              {% elif r.status == 'Rejected' %}<span class="badge-status bs-rejected">{{ r.status }}</span>
+              {% else %}<span class="badge-status bs-pending">{{ r.status }}</span>{% endif %}
+            </td>
+            <td>
+              {% if r.payment_status == 'Paid' %}
+                <span class="badge-status bs-paid">Paid</span>
+                {% if r.paid_at %}<div class="small text-muted mt-1">{{ r.paid_at.strftime('%d %b %Y %H:%M') if r.paid_at else r.paid_at }}</div>{% endif %}
+                {% if r.payment_id %}<div class="small"><code>{{ r.payment_id[:20] }}{% if r.payment_id|length > 20 %}…{% endif %}</code></div>{% endif %}
+              {% else %}<span class="badge-status bs-unpaid">Unpaid</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="fas fa-gas-pump"></i><div>No fuel requests yet</div></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

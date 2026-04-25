@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Breakdowns – FleetGuard{% endblock %}
+{% block page_title %}Breakdown Reports{% endblock %}
+{% block content %}
+<h6 class="section-title mb-3">All Breakdown Reports</h6>
+<div class="card-table">
+  {% if breakdowns %}
+  <table class="table table-hover">
+    <thead>
+      <tr><th>#</th><th>Driver</th><th>Truck</th><th>Location</th><th>Problem</th><th>Status</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for b in breakdowns %}
+      <tr>
+        <td class="text-muted small">{{ loop.index }}</td>
+        <td><strong>{{ b.driver_name }}</strong></td>
+        <td><span class="truck-badge">{{ b.truck_number }}</span></td>
+        <td><small>{{ b.location }}</small></td>
+        <td><small>{{ b.problem_description[:60] }}{% if b.problem_description|length > 60 %}...{% endif %}</small></td>
+        <td>
+          {% if b.status == 'Resolved' %}<span class="badge-status bs-resolved">{{ b.status }}</span>
+          {% else %}<span class="badge-status bs-open">{{ b.status }}</span>{% endif %}
+        </td>
+        <td class="text-muted small">{{ b.created_at.strftime('%d %b %Y') if b.created_at else '' }}</td>
+        <td>
+          {% if b.status != 'Resolved' %}
+          <form method="POST" action="{{ url_for('resolve_breakdown', bd_id=b._id) }}">
+            <button type="submit" class="btn-action btn-action--success">
+              <i class="fas fa-check me-1"></i>Resolve
+            </button>
+          </form>
+          {% else %}
+          <span class="text-muted small">Closed</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-wrench"></i>
+    <div>No breakdown reports on record.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

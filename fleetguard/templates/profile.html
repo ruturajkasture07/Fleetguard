@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}My Profile - FleetGuard{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="form-card">
+      <h5><i class="fas fa-user-pen me-2"></i>Edit Profile</h5>
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" value="{{ user.username }}" disabled>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Role</label>
+            <input type="text" class="form-control" value="{{ user.role|title }}" disabled>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Name *</label>
+            <input type="text" name="name" class="form-control" value="{{ user.name or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email *</label>
+            <input type="email" name="email" class="form-control" value="{{ user.email or '' }}" required>
+          </div>
+          {% if user.role == 'driver' and driver %}
+          <div class="col-md-6">
+            <label class="form-label">Phone *</label>
+            <input type="text" name="phone" class="form-control" value="{{ driver.phone or '' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">License Number *</label>
+            <input type="text" name="license_number" class="form-control" value="{{ driver.license_number or '' }}" required>
+          </div>
+          {% endif %}
+          <div class="col-md-6">
+            <label class="form-label">New Password (optional)</label>
+            <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current">
+          </div>
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Profile</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

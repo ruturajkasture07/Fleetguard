@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Driver – FleetGuard{% endblock %}
+{% block page_title %}{{ action }} Driver{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="form-card">
+      <h5><i class="fas fa-id-card me-2"></i>{{ action }} Driver</h5>
+      <form method="POST">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Driver Name *</label>
+            <input type="text" name="driver_name" class="form-control" placeholder="Full name"
+              value="{{ driver.driver_name.split(' ')[0] if driver and driver.driver_name else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Surname *</label>
+            <input type="text" name="surname" class="form-control" placeholder="Surname"
+              value="{{ driver.surname if driver else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone Number *</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+91 9999999999"
+              value="{{ driver.phone if driver else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email *</label>
+            <input type="email" name="email" class="form-control" placeholder="driver@email.com"
+              value="{{ driver.email if driver else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">License Number *</label>
+            <input type="text" name="license_number" class="form-control" placeholder="DL-XXXXXXXXXX"
+              value="{{ driver.license_number if driver else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Experience *</label>
+            <input type="text" name="experience" class="form-control" placeholder="e.g. 5 years"
+              value="{{ driver.experience if driver else '' }}" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assigned Truck</label>
+            <select name="assigned_truck" class="form-select">
+              <option value="">-- None --</option>
+              {% for t in trucks %}
+              <option value="{{ t.truck_number }}"
+                {% if driver and driver.assigned_truck == t.truck_number %}selected{% endif %}>
+                {{ t.truck_number }} ({{ t.truck_type }}) – {{ t.status }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if action == 'Add' %}
+          <div class="col-md-6">
+            <label class="form-label">Login Username *</label>
+            <input type="text" name="username" class="form-control" placeholder="driver_username" required/>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Login Password *</label>
+            <input type="password" name="password" class="form-control" placeholder="Set password" required/>
+          </div>
+          {% endif %}
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>{{ action }} Driver</button>
+            <a href="{{ url_for('drivers') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

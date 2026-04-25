@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Trucks – FleetGuard{% endblock %}
+{% block page_title %}Truck Management{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h6 class="section-title mb-0">All Trucks ({{ trucks|length }})</h6>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('truck_profitability') }}" class="btn btn-accent btn-sm">
+      <i class="fas fa-chart-line me-1"></i> Profitability Report
+    </a>
+    <a href="{{ url_for('add_truck') }}" class="btn btn-primary btn-sm">
+      <i class="fas fa-plus me-1"></i> Add Truck
+    </a>
+  </div>
+</div>
+<div class="card-table">
+  {% if trucks %}
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>#</th><th>Truck Number</th><th>Type</th><th>Capacity</th><th>Status</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in trucks %}
+      <tr>
+        <td class="text-muted small">{{ loop.index }}</td>
+        <td><span class="truck-badge">{{ t.truck_number }}</span></td>
+        <td>{{ t.truck_type }}</td>
+        <td>{{ t.capacity }} tons</td>
+        <td>
+          {% if t.status == 'Available' %}<span class="badge-status bs-available">{{ t.status }}</span>
+          {% elif t.status == 'On Route' %}<span class="badge-status bs-on-route">{{ t.status }}</span>
+          {% else %}<span class="badge-status bs-maintenance">{{ t.status }}</span>{% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('edit_truck', truck_id=t.id) }}" class="btn-action btn-action--primary me-1">
+            <i class="fas fa-edit"></i>
+          </a>
+          <button class="btn-action btn-action--warning" data-bs-toggle="modal" data-bs-target="#statusModal{{ loop.index }}">
+            <i class="fas fa-toggle-on"></i>
+          </button>
+          <form method="POST" action="{{ url_for('delete_truck', truck_id=t.id) }}" class="d-inline" onsubmit="return confirm('Delete this truck?');">
+            <button type="submit" class="btn-action btn-action--danger"><i class="fas fa-trash"></i></button>
+          </form>
+          <!-- Status Modal -->
+          <div class="modal fade" id="statusModal{{ loop.index }}" tabindex="-1">
+            <div class="modal-dialog modal-sm">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h6 class="modal-title">Change Status – {{ t.truck_number }}</h6>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('change_truck_status', truck_id=t.id) }}">
+                  <div class="modal-body">
+                    <select name="status" class="form-select">
+                      <option {% if t.status=='Available' %}selected{% endif %}>Available</option>
+                      <option {% if t.status=='On Route' %}selected{% endif %}>On Route</option>
+                      <option {% if t.status=='Maintenance' %}selected{% endif %}>Maintenance</option>
+                    </select>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-truck"></i>
+    <div>No trucks added yet.</div>
+    <a href="{{ url_for('add_truck') }}" class="btn btn-primary btn-sm mt-2">Add First Truck</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

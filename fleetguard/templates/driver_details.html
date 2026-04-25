@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Driver Details – FleetGuard{% endblock %}
+{% block page_title %}Driver Management: {{ driver.driver_name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="form-card">
+            <div class="d-flex align-items-center mb-4">
+                <div class="avatar bg-primary text-white me-3" style="width: 60px; height: 60px; font-size: 24px;">{{ driver.driver_name[0] }}</div>
+                <div>
+                    <h5 class="mb-0">{{ driver.driver_name }}</h5>
+                    <span class="badge {{ 'bg-success' if driver.is_active else 'bg-danger' }}">
+                        {{ 'Active' if driver.is_active else 'Suspended' }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="text-muted small d-block">Username</label>
+                <div class="fw-bold">{{ driver.username }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="text-muted small d-block">Email</label>
+                <div class="fw-bold">{{ driver.email }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="text-muted small d-block">Phone</label>
+                <div class="fw-bold">{{ driver.phone }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="text-muted small d-block">License Number</label>
+                <div class="fw-bold">{{ driver.license_number }}</div>
+            </div>
+            <div class="mb-3">
+                <label class="text-muted small d-block">Experience</label>
+                <div class="fw-bold">{{ driver.experience }} years</div>
+            </div>
+            
+            <hr>
+            
+            <div class="d-grid gap-2">
+                <form action="{{ url_for('toggle_user_status', user_id=driver.user_id) }}" method="POST">
+                    <button type="submit" class="btn {{ 'btn-outline-danger' if driver.is_active else 'btn-success' }} w-100">
+                        <i class="fas {{ 'fa-user-slash' if driver.is_active else 'fa-user-check' }} me-2"></i>
+                        {{ 'Suspend Account' if driver.is_active else 'Activate Account' }}
+                    </button>
+                </form>
+                
+                <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#resetPassModal">
+                    <i class="fas fa-key me-2"></i> Reset Password
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#pills-shipments">Shipments</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#pills-emergency">Emergency Reports</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="pills-tabContent">
+            <div class="tab-pane fade show active" id="pills-shipments">
+                <div class="card-table">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr><th>ID</th><th>Date</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for s in shipments %}
+                            <tr>
+                                <td><code>{{ s.shipment_id }}</code></td>
+                                <td>{{ s.created_at.strftime('%Y-%m-%d') if s.created_at is not string else s.created_at[:10] }}</td>
+                                <td><span class="badge-status {{ 'bs-delivered' if s.status == 'Delivered' else 'bs-transit' }}">{{ s.status }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="3" class="text-center py-4">No shipments recorded</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="pills-emergency">
+                <div class="card-table mb-3">
+                    <div class="card-table-header"><h6>Accidents</h6></div>
+                    <table class="table table-hover">
+                        <thead><tr><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for a in accidents %}
+                            <tr>
+                                <td><span class="badge bg-danger">{{ a.accident_type }}</span></td>
+                                <td>{{ a.created_at[:10] if a.created_at is string else a.created_at }}</td>
+                                <td>{{ a.status }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-table">
+                    <div class="card-table-header"><h6>Breakdowns</h6></div>
+                    <table class="table table-hover">
+                        <thead><tr><th>Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            {% for b in breakdowns %}
+                            <tr>
+                                <td>{{ b.created_at[:10] }}</td>
+                                <td>{{ b.status }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Password Reset Modal -->
+<div class="modal fade" id="resetPassModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-body p-4">
+                <h5 class="mb-3">Reset Password</h5>
+                <form action="{{ url_for('admin_reset_password', user_id=driver.user_id) }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="new_password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

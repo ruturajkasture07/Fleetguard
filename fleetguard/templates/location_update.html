@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Location Update – FleetGuard{% endblock %}
+{% block page_title %}Update Location{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="form-card">
+        <p class="text-muted small mb-4">Your current location is shared with the admin and customer every 30 minutes during active shipments.</p>
+        
+        <div class="mb-4">
+          {% if driver.paused_until %}
+            <div class="alert alert-warning">
+              <i class="fas fa-pause-circle me-2"></i>
+              Location sharing is currently <strong>PAUSED</strong> until {{ driver.paused_until }}.
+              <form action="{{ url_for('location_resume') }}" method="POST" class="mt-2">
+                <button type="submit" class="btn btn-sm btn-success">Resume Now</button>
+              </form>
+            </div>
+          {% else %}
+            <form action="{{ url_for('location_pause') }}" method="POST" class="d-flex align-items-center gap-2">
+              <span class="small fw-bold text-muted">Pause sharing for:</span>
+              <select name="minutes" class="form-select form-select-sm" style="width: auto;">
+                <option value="15">15 mins</option>
+                <option value="30">30 mins</option>
+                <option value="60">60 mins</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-warning">Pause</button>
+            </form>
+          {% endif %}
+        </div>
+
+        <form method="POST" id="locationForm">
+        <div class="mb-3">
+          <label class="form-label">Truck Number *</label>
+          <input type="text" name="truck_number" class="form-control"
+            value="{{ driver.assigned_truck if driver else '' }}" placeholder="Truck Number" readonly/>
+          <div class="form-text">Truck is auto-selected from your profile.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Current Location *</label>
+          <input type="text" id="currentLocationInput" name="current_location" class="form-control" placeholder="Fetching GPS... or enter manually" required/>
+          <div class="form-text">GPS auto-detection is used by default. You can edit manually if needed.</div>
+        </div>
+        <input type="hidden" id="latitudeInput" name="latitude"/>
+        <input type="hidden" id="longitudeInput" name="longitude"/>
+        <input type="hidden" id="sourceInput" name="source" value="manual"/>
+        <div id="gpsStatus" class="small text-muted mb-3">Detecting GPS location...</div>
+        <button type="button" id="detectGpsBtn" class="btn btn-outline-secondary w-100 mb-2">
+          <i class="fas fa-crosshairs me-2"></i>Detect Location via GPS
+        </button>
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-location-dot me-2"></i>Update Location
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="col-md-6">
+    {% if latest %}
+    <div class="form-card h-100">
+      <h5><i class="fas fa-clock me-2"></i>Last Known Location</h5>
+      <div class="mb-3">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Truck</div>
+        <span class="truck-badge">{{ latest.truck_number }}</span>
+      </div>
+      <div class="mb-3">
+        <div class="text-muted small text-uppercase fw-bold mb-1">Location</div>
+        <div class="location-display">📍 {{ latest.current_location }}</div>
+      </div>
+      <div>
+        <div class="text-muted small text-uppercase fw-bold mb-1">Last Updated</div>
+        <div class="text-muted">{{ latest.updated_at.strftime('%d %b %Y, %I:%M %p') if latest.updated_at else 'Unknown' }}</div>
+      </div>
+      {% if latest_coords and latest_coords.latitude is not none and latest_coords.longitude is not none %}
+      <div class="mt-3" style="width: 100%; height: 250px; border-radius: 8px; overflow: hidden; border: 1px solid #eee;">
+        <iframe 
+          width="100%" 
+          height="100%" 
+          frameborder="0" 
+          scrolling="no" 
+          marginheight="0" 
+          marginwidth="0" 
+          src="https://maps.google.com/maps?q={{ latest_coords.latitude }},{{ latest_coords.longitude }}&z=15&output=embed">
+        </iframe>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="form-card h-100 d-flex align-items-center justify-content-center">
+      <div class="empty-state">
+        <i class="fas fa-map-location-dot"></i>
+        <div>No location data yet.</div>
+        <small class="text-muted">Update your location using the form.</small>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+<div class="card-table mt-3">
+  <div class="card-table-header">
+    <h6><i class="fas fa-clock-rotate-left me-2"></i>My Last 5 Location Updates</h6>
+  </div>
+  {% if recent_updates %}
+  <table class="table table-hover">
+    <thead>
+      <tr><th>Time</th><th>Location</th><th>Source</th><th>Coordinates</th></tr>
+    </thead>
+    <tbody>
+      {% for u in recent_updates %}
+      <tr>
+        <td class="text-muted small">{{ u.updated_at.strftime('%d %b %Y, %I:%M %p') if u.updated_at else '' }}</td>
+        <td><i class="fas fa-location-dot text-danger me-1"></i>{{ u.current_location }}</td>
+        <td><span class="badge-status {{ 'bs-approved' if u.source == 'gps' else 'bs-pending' }}">{{ (u.source or 'manual')|upper }}</span></td>
+        <td class="small text-muted">
+          {% if u.latitude is not none and u.longitude is not none %}
+            {{ '%.6f'|format(u.latitude) }}, {{ '%.6f'|format(u.longitude) }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-map-location-dot"></i>
+    <div>No update history yet.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const currentLocationInput = document.getElementById('currentLocationInput');
+  const latitudeInput = document.getElementById('latitudeInput');
+  const longitudeInput = document.getElementById('longitudeInput');
+  const sourceInput = document.getElementById('sourceInput');
+  const gpsStatus = document.getElementById('gpsStatus');
+  const detectBtn = document.getElementById('detectGpsBtn');
+
+  function setManualMode(message) {
+    sourceInput.value = 'manual';
+    gpsStatus.textContent = message;
+  }
+
+  function detectGPS() {
+    if (!navigator.geolocation) {
+      setManualMode('GPS is not supported by this browser. Enter location manually.');
+      return;
+    }
+    gpsStatus.textContent = 'Requesting GPS permission...';
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        latitudeInput.value = lat;
+        longitudeInput.value = lon;
+        sourceInput.value = 'gps';
+        currentLocationInput.value = `GPS: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+        gpsStatus.textContent = 'GPS location detected successfully.';
+      },
+      function (error) {
+        let message = 'Unable to detect GPS. Please enter location manually.';
+        if (error && error.code === error.PERMISSION_DENIED) {
+          message = 'GPS permission denied. Enter location manually.';
+        }
+        setManualMode(message);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  detectBtn.addEventListener('click', detectGPS);
+  function autoUpdateEvery30Mins() {
+    const payload = {
+      current_location: currentLocationInput.value,
+      latitude: latitudeInput.value ? Number(latitudeInput.value) : null,
+      longitude: longitudeInput.value ? Number(longitudeInput.value) : null
+    };
+    if (!payload.current_location) return;
+    fetch('{{ url_for("location_auto_update") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function () {});
+  }
+  detectGPS();
+  setInterval(function () {
+    detectGPS();
+    setTimeout(autoUpdateEvery30Mins, 3000);
+  }, 30 * 60 * 1000);
+})();
+</script>
+{% endblock %}

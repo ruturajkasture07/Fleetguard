@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Call Requests – FleetGuard{% endblock %}
+{% block page_title %}Call Requests{% endblock %}
+{% block content %}
+<h6 class="section-title mb-3">All Driver Call Requests</h6>
+<div class="card-table">
+  {% if requests %}
+  <table class="table table-hover">
+    <thead>
+      <tr><th>#</th><th>Driver</th><th>Truck</th><th>Message</th><th>Status</th><th>Date</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for r in requests %}
+      <tr>
+        <td class="text-muted small">{{ loop.index }}</td>
+        <td><strong>{{ r.driver_name }}</strong></td>
+        <td><span class="truck-badge">{{ r.truck_number or '—' }}</span></td>
+        <td><small>{{ r.message }}</small></td>
+        <td>
+          {% if r.status == 'Resolved' %}<span class="badge-status bs-resolved">{{ r.status }}</span>
+          {% else %}<span class="badge-status bs-pending">{{ r.status }}</span>{% endif %}
+        </td>
+        <td class="text-muted small">{{ r.created_at.strftime('%d %b %Y, %I:%M %p') if r.created_at else '' }}</td>
+        <td>
+          {% if r.status != 'Resolved' %}
+          <form method="POST" action="{{ url_for('resolve_call', req_id=r._id) }}">
+            <button type="submit" class="btn-action btn-action--success">
+              <i class="fas fa-phone-slash me-1"></i>Mark Done
+            </button>
+          </form>
+          {% else %}
+          <span class="text-muted small">Resolved</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="fas fa-phone-volume"></i>
+    <div>No call requests yet.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
