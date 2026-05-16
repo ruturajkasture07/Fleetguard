@@ -3318,4 +3318,25 @@ def driver_reroute_action(shipment_id, action):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # FR-Deployment: Optional ngrok support
+    if os.environ.get('USE_NGROK') == 'True' and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        from pyngrok import ngrok
+        
+        # Set auth token if provided
+        ngrok_token = os.environ.get('NGROK_AUTH_TOKEN')
+        if ngrok_token:
+            ngrok.set_auth_token(ngrok_token)
+            
+        try:
+            # Check for existing tunnels first
+            tunnels = ngrok.get_tunnels()
+            if tunnels:
+                public_url = tunnels[0].public_url
+            else:
+                # Open a tunnel on the default Flask port
+                public_url = ngrok.connect(5000).public_url
+            print(f" * ngrok tunnel available at: {public_url}")
+        except Exception as e:
+            print(f" * Could not start ngrok: {e}")
+        
+    app.run(debug=True, port=5000)
