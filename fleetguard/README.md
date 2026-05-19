@@ -2,7 +2,7 @@
 
 A full-stack fleet management web application built with **Flask**, **Bootstrap 5**, and **MongoDB**.
 
-----
+---
 
 ##  Tech Stack
 
