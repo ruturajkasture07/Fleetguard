@@ -1,10 +1,10 @@
-# 🛡️ FleetGuard – Smart Transport Management System
+#  FleetGuard – Smart Transport Management System
 
 A full-stack fleet management web application built with **Flask**, **Bootstrap 5**, and **MongoDB**.
 
 ---
 
-## 📦 Tech Stack
+##  Tech Stack
 
 | Layer      | Technology              |
 |------------|-------------------------|
@@ -17,7 +17,7 @@ A full-stack fleet management web application built with **Flask**, **Bootstrap 
 
 ---
 
-## 🚀 Setup & Installation
+##  Setup & Installation
 
 ### 1. Prerequisites
 - Python 3.8+
@@ -71,7 +71,7 @@ Open your browser at: **http://127.0.0.1:5000**
 
 ---
 
-## 🔐 Default Login Credentials
+##  Default Login Credentials
 
 | Role  | Username | Password  |
 |-------|----------|-----------|
@@ -108,7 +108,7 @@ Open your browser at: **http://127.0.0.1:5000**
 
 ---
 
-## 💳 Razorpay Integration
+##  Razorpay Integration
 
 1. Create an account at [razorpay.com](https://razorpay.com)
 2. Go to **Settings → API Keys** and generate test keys
@@ -123,7 +123,7 @@ Open your browser at: **http://127.0.0.1:5000**
 
 ---
 
-## 🗂️ Project Structure
+##  Project Structure
 
 ```
 fleetguard/
@@ -156,7 +156,7 @@ fleetguard/
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 **MongoDB not connecting?**
 - Make sure MongoDB is running: `mongod --dbpath /data/db`
@@ -175,5 +175,5 @@ flask run --port 8080
 
 ---
 
-## 📄 License
+##  License
 MIT License – Free to use and modify.
